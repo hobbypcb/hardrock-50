@@ -30,7 +30,10 @@ void changeBandDisplay(int direction) {
         if (band < 0) { band = 0; }
         if (band == _60M) { band = _40M; } // Skip over 60M going down
      }
+     bandDispFlag = 1;
+}
 
+void changeBandLCD() {
      switch (band) {
             case _6M:
                  memcpy(BAND_STR,"6M  ",4);
@@ -73,7 +76,7 @@ void changeBandDisplay(int direction) {
                  break;
                  // change interrupt here
      }
-
+    bandDispFlag = 0;
 }
 
 void setBandDelay() {

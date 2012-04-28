@@ -6,7 +6,7 @@ Value=0
 [BUILD_TYPE]
 Value=0
 [ACTIVE_TAB]
-Value=int.c
+Value=functions.c
 [USE_EEPROM]
 Value=0
 [USE_HEAP]
@@ -44,27 +44,31 @@ Count=0
 [OTHER_FILES]
 Count=0
 [SEARCH_PATH]
-Count=5
+Count=6
 Path0=C:\Users\Public\Documents\Mikroelektronika\mikroC PRO for PIC\defs\
 Path1=C:\Users\Public\Documents\Mikroelektronika\mikroC PRO for PIC\uses\P18\
-Path2=\\vmware-host\Shared Folders\cpope On My Mac\Dropbox\AMP Board\PIC LCD Interface\MicroC Project\
-Path3=Z:\cpope On My Mac\Dropbox\AMP Board\PIC LCD Interface\MicroC Project\
-Path4=C:\Users\Public\Documents\Mikroelektronika\mikroC PRO for PIC\Examples\Development Systems\EASYPIC7\
+Path2=C:\hardrock-50\
+Path3=\\vmware-host\Shared Folders\cpope On My Mac\Dropbox\AMP Board\PIC LCD Interface\MicroC Project\
+Path4=Z:\cpope On My Mac\Dropbox\AMP Board\PIC LCD Interface\MicroC Project\
+Path5=C:\Users\Public\Documents\Mikroelektronika\mikroC PRO for PIC\Examples\Development Systems\EASYPIC7\
 [HEADER_PATH]
-Count=2
+Count=3
 Path0=Z:\cpope On My Mac\Dropbox\AMP Board\PIC LCD Interface\MicroC Project\
 Path1=\\vmware-host\Shared Folders\cpope On My Mac\Dropbox\AMP Board\PIC LCD Interface\MicroC Project\
+Path2=C:\hardrock-50\
 [HEADERS]
 Count=1
 File0=defs.h
 [PLDS]
 Count=0
 [Useses]
-Count=4
+Count=6
 File0=Lcd
 File1=Lcd_Constants
 File2=C_String
 File3=Button
+File4=ADC
+File5=Conversions
 [EXPANDED NODES]
 Node1=Sources
 Node2=Header Files

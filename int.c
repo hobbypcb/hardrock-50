@@ -59,29 +59,32 @@ void interrupt() {
       }
       else if (INTCON.INT0IF)
       { // BAND-DOWN - INT0 interrupt
+        Button(&PORTB, 0, 30, 0);
         changeBandDisplay(-1);
       //  setBandDelay();
         bandFlag = 1;
         lcdFlag = 1;
-        Button(&PORTB, 0, 30, 0);
+;
         INTCON.INT0IF = 0; // Clear interrupt flag bit
 
       }
       else if (INTCON3.INT1IF)
       { // BAND-UP - INT1 interrupt
+        Button(&PORTB, 1, 30, 0);
         changeBandDisplay(+1);
       //  setBandDelay();
         bandFlag = 1;
         lcdFlag = 1;
-        Button(&PORTB, 1, 30, 0);
+
         INTCON3.INT1IF = 0;  // Clear interrupt flag bit
 
       }
       else if (INTCON3.INT2IF)
       { // KEY MODE - INT2 interrupt
+        Button(&PORTB, 2, 30, 0);
         changeKeyMode();
         lcdFlag = 1;
-        Button(&PORTB, 2, 30, 0);
+
         INTCON3.INT2IF = 0;  // Clear interrupt flag bit
 
       }

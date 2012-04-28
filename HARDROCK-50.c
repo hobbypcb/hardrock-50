@@ -21,7 +21,7 @@
 
 char i;                              // Loop variable
 unsigned short lcdFlag = 1;
-unsigned short txState = 0, lastB = 0, timer0Flag = 0, bandFlag = 1;
+unsigned short txState = 0, lastB = 0, timer0Flag = 0, bandFlag = 1, bandDispFlag = 1, keyDispFlag;
 unsigned short keymode = 0;
 unsigned short band = 10;
 
@@ -34,26 +34,26 @@ void main(){
   init();
 
   while(1) {                         // Endless loop
+
+      if (txState == 1) {
+      
+      } else {
+        checkRXAnalogs();
+      }
+
       if (lcdFlag == 1) {
          updateLCD();
       }
-/*if (timer0Flag == 1) {
-         timer0Flag = 0;
-         if (bandFlag == 1) {
-            bandFlag = 0;
-            setBand();
-         }
+      
+      if (keyDispFlag == 1) {
+         changeKeyModeLCD();
+      }
+      
+      if (bandDispFlag == 1) {
+         changeBandLCD();
+      }
+      
 
-      }*/
-//    if (i == 0)
-//       Show_RX();
-//       LATC = 0x01;
-//       Delay_ms(5000);
-
-//    if (i == 1)
-//       Show_TX();
-//       LATC = 0x02;
-//       Delay_ms(5000);
 
 
 

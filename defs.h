@@ -71,6 +71,12 @@ sbit LCD_D7_Direction at TRISD0_bit;
 #define _30_40M_RLY         LATC.B5
 #define _80M_RLY            LATA.B5
 
+// Analog Channels
+#define VOLT_CH             0
+#define TEMP_CH             1
+#define FWD_PWR_CH             26
+#define RFL_PWR_CH             27
+
 // DTC PORTS
 #define DTC1                LATA.B2
 #define DTC2                LATA.B4
@@ -81,13 +87,16 @@ sbit LCD_D7_Direction at TRISD0_bit;
 
 // Global variables
 
-extern unsigned short txState = 0, timer0Flag = 0, bandFlag = 10;
+extern unsigned short txState = 0, timer0Flag = 0, bandFlag = 10, bandDispFlag = 0, keyDispFlag = 0;
 extern unsigned short keymode = 0;  //0=SB, 1=PT, 2=CR
 extern unsigned short band = 10;  //see below for values 0-10
 extern unsigned short lastB = 0 ;
 extern char i;                              // Loop variable
 extern unsigned short lcdFlag;
 extern char BAND_STR[4];
+extern char VOLT_STR[5];
+extern char TEMP_STR[5];
+extern unsigned int VOLT, TEMP, FWD_PWR, RFL_PWR;
 
 // Function Prototypes
 
@@ -104,3 +113,7 @@ void changeBandDisplay(int direction);
 void setBandDelay(void);
 void setBand(void);
 void setTX_OUT(void);
+void checkRXAnalogs(void);
+void checkTXAnalogs(void);
+void changeKeyModeLCD();
+void changeBandLCD();

@@ -19,10 +19,15 @@
 
 void init() {
   keymode = 2;
+  ANSELA = 0b00000011;
   ANSELB = 0;                        // Configure PORTB pins as digital
   ANSELC = 0;
-  ANSELD = 0;
+  ANSELD = 0b11000000;
   ANSELE = 0;
+  
+  // Configure ADC Options
+  ADCON1 = 0b00001000;  // PVCFG<1:0> bit 3-2 10 for A/D VREF+ connected to internal signal, FVR BUF2
+  VREFCON0 = 0b10110000;
   
   // Timer0 Registers:// 16-Bit Mode; Prescaler=1:256; TMRH Preset=B; TMRL Preset=DC; Freq=1.00Hz; Period=1,000,000,000 ns
   T0CON.TMR0ON = 0;// Timer0 On/Off Control bit:1=Enables Timer0 / 0=Stops Timer0
@@ -59,10 +64,10 @@ void init() {
   IOCB.IOCB6 = 0;
   IOCB.IOCB7 = 0;
 
-  TRISA = 0;
+  TRISA = 0b00000011;
   TRISB = 0b00110111;
   TRISC = 0;
-  TRISD = 0;
+  TRISD = 0b11000000;
   TRISE = 0;
   
   WPUB = 0b00100000;  // Enable Weak Pull up on COR RB5
@@ -86,5 +91,7 @@ void init() {
   INTCON.INT0IF = 0;
   INTCON3.INT2IF = 0;
   INTCON3.INT1IF = 0;
+  
+  ADC_INIT();
 
 }

@@ -22,11 +22,13 @@ char SPLASH_TOP[] = "HARDROCK-50 AMP";
 char SPLASH_BOTTOM[] = "VERSION 3 FW:1.0";
 
 char RX_TOP_BAND[] = "BAND:";
-char RX_TOP_KEY[] = " KEY:";
+char RX_TOP_KEY[] = "KEY:";
 char BAND_STR[] = "160M";
 char KEY_STR[] = "SB";
 char RX_BOTTOM[] = "104.1      13.8V";
 char TX_BOTTOM[] = "SWR:1.7  PEP:31W";
+char VOLT_STR[] = "00.0V";
+char TEMP_STR[] = "000.0F";
 
 
 const char leftBracket[] = {31,16,16,16,16,16,16,31};
@@ -51,11 +53,16 @@ void ShowRightBracket(char pos_row, char pos_char) {
 
 void Show_RX() {                  // Function used for text moving
 //  Lcd_Cmd(_LCD_CLEAR);               // Clear display
-  Lcd_Out(1,1,RX_TOP_BAND);                 // Write text in first row
-  Lcd_Out(1,6,BAND_STR);
-  Lcd_Out(1,10,RX_TOP_KEY);
-  LCD_Out(1,15,KEY_STR);
-  Lcd_Out(2,1,RX_BOTTOM);                 // Write text in second row
+  Lcd_Out(1,1,RX_TOP_KEY);
+  LCD_Out(1,5,KEY_STR);
+  Lcd_Out(1,8,RX_TOP_BAND);                 // Write text in first row
+  Lcd_Out(1,13,BAND_STR);
+
+  LCD_Out(2,1,TEMP_STR);
+  Lcd_Chr(2,6,223);
+  LCD_Out(2,7,"F    ");
+  LCD_Out(2,12,VOLT_STR);
+//  Lcd_Out(2,1,RX_BOTTOM);                 // Write text in second row
 //  i = 1;
 }
 
@@ -92,6 +99,10 @@ void updateLCD() {
 void changeKeyMode() {
      keymode = keymode + 1;
      if (keymode > 2) { keymode = 0; }
+     keyDispFlag = 1;
+}
+
+void changeKeyModeLCD() {
      switch (keymode) {
             case SB:
                  IOCB.IOCB4 = 0;                    //Disable IOC on RB4/5
@@ -112,5 +123,6 @@ void changeKeyMode() {
                  break;
 
      }
+     keyDispFlag = 0;
 
 }

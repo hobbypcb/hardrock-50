@@ -18,6 +18,8 @@
 
 #include "defs.h"
 
+unsigned int VOLT, TEMP, FWD_PWR, RFL_PWR;
+
 void setTX_OUT() {
 
      if (bandFlag == 1) {
@@ -31,5 +33,43 @@ void setTX_OUT() {
 
 void changeKey() {
      keymode++;
+}
+
+void checkRXAnalogs() {
+     unsigned int tmp_volt = 1;
+     unsigned int tmp_temp = 1;
+     float voltage, temperature;
+     char volt_float_char[15];
+     char temp_float_char[15];
+     char tmp_char[8];
+     tmp_volt = ADC_Read(VOLT_CH);
+
+     if (tmp_volt != VOLT) {
+        VOLT = tmp_volt;
+        voltage = tmp_volt * 4;
+        voltage = voltage / 1000;
+        voltage = voltage * 4.191;
+        FloatToStr(voltage, volt_float_char);
+        memcpy(VOLT_STR, volt_float_char, 4);
+        lcdFlag = 1;
+     }
+     delay_ms(5);
+     // May want to change voltage reference to 1.024V instead of 4.096V
+     // for better resolution
+     tmp_temp = ADC_READ(TEMP_CH);
+     if (tmp_temp != TEMP) {
+        TEMP = tmp_temp;
+        temperature = tmp_temp * 4;
+        temperature = temperature / 10;
+        temperature = temperature * 1.8;
+        temperature = temperature + 32;
+        FloatToStr(temperature, temp_float_char);
+        memcpy(TEMP_STR, temp_float_char, 5);
+        lcdFlag = 1;
+     }
+
+}
+
+void checkTXAnalogs() {
 
 }
