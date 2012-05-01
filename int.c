@@ -24,7 +24,6 @@ void interrupt() {
      if (INTCON.RBIF)
      {  // RBIF set by change on PORTB b4-b7 (see Data Sheet P101)
         snapshotB = PORTB;      // end any mismatch before clear, take snapshot
-        INTCON.RBIF = 0;        // clear interrupt flag
         lastB = lastB ^ snapshotB; // xor previous value with current value to detect which pin changed
 
 
@@ -35,10 +34,12 @@ void interrupt() {
            txState = 1;
            setTX_OUT();
            lcdFlag = 1;
+           delay_ms(30);
           } else {
            txState = 0;
            TX_OUT = 0;
            lcdFlag = 1;
+           delay_ms(30);
           }
         }
 
@@ -49,18 +50,21 @@ void interrupt() {
            txState = 1;
            setTX_OUT();
            lcdFlag = 1;
+           delay_ms(30);
           } else {
            txState = 0;
            TX_OUT = 0;
            lcdFlag = 1;
+           delay_ms(30);
           }
         }
+        INTCON.RBIF = 0;        // clear interrupt flag
         lastB = PORTB;
       }
       else if (INTCON.INT0IF)
       { // BAND-DOWN - INT0 interrupt
-        Button(&PORTB, 0, 30, 0);
         changeBandDisplay(-1);
+        delay_ms(30);
       //  setBandDelay();
         bandFlag = 1;
         lcdFlag = 1;
@@ -70,8 +74,8 @@ void interrupt() {
       }
       else if (INTCON3.INT1IF)
       { // BAND-UP - INT1 interrupt
-        Button(&PORTB, 1, 30, 0);
         changeBandDisplay(+1);
+        delay_ms(30);
       //  setBandDelay();
         bandFlag = 1;
         lcdFlag = 1;
@@ -81,8 +85,9 @@ void interrupt() {
       }
       else if (INTCON3.INT2IF)
       { // KEY MODE - INT2 interrupt
-        Button(&PORTB, 2, 30, 0);
         changeKeyMode();
+        delay_ms(30);
+
         lcdFlag = 1;
 
         INTCON3.INT2IF = 0;  // Clear interrupt flag bit

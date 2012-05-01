@@ -81,6 +81,12 @@ sbit LCD_D7_Direction at TRISD0_bit;
 #define DTC1                LATA.B2
 #define DTC2                LATA.B4
 
+// LCD Special Chars
+#define meterLeft 0
+#define meterBoth 1
+#define meterTop 2
+#define meterBottom 3
+
 // Interrupt constants
 
 
@@ -96,6 +102,8 @@ extern unsigned short lcdFlag;
 extern char BAND_STR[4];
 extern char VOLT_STR[5];
 extern char TEMP_STR[5];
+extern char PEP_STR[3];
+extern char VSWR_STR[3];
 extern unsigned int VOLT, TEMP, FWD_PWR, RFL_PWR;
 
 // Function Prototypes
@@ -117,3 +125,5 @@ void checkRXAnalogs(void);
 void checkTXAnalogs(void);
 void changeKeyModeLCD();
 void changeBandLCD();
+void setPowerMeter(float fwdpwr, float rflpwr);
+void portTest();

@@ -36,7 +36,7 @@ void main(){
   while(1) {                         // Endless loop
 
       if (txState == 1) {
-      
+        checkTXAnalogs();
       } else {
         checkRXAnalogs();
       }

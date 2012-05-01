@@ -17,6 +17,27 @@
 // Init for HARDROCK-50
 #include "defs.h"
 
+const char meterLeft_CHR[] = {16,16,16,0,16,16,16,0};
+const char meterBoth_CHR[] = {31,31,31,0,31,31,31,0};
+const char meterTop_CHR[] = {31,31,31,0,0,0,0,0};
+const char meterBottom_CHR[] = {0,0,0,0,31,31,31,0};
+
+
+void LoadChars() {
+    char i;
+    Lcd_Cmd(64);
+    for (i = 0; i<=7; i++) Lcd_Chr_CP(meterLeft_CHR[i]);
+
+    Lcd_Cmd(72);
+    for (i = 0; i<=7; i++) Lcd_Chr_CP(meterBoth_CHR[i]);
+
+    Lcd_Cmd(80);
+    for (i = 0; i<=7; i++) Lcd_Chr_CP(meterTop_CHR[i]);
+    
+    Lcd_Cmd(88);
+    for (i = 0; i<=7; i++) Lcd_Chr_CP(meterBottom_CHR[i]);
+}
+
 void init() {
   keymode = 2;
   ANSELA = 0b00000011;
@@ -79,12 +100,16 @@ void init() {
   LATE = 0;
 
   LATC = 0x02;
-  LATB.RB7 = 1;
-  LATB.RB6 = 1;
+//  LATB.RB7 = 1;
+//  LATB.RB6 = 1;
   Do_LCD_Init();
-  LATB.RB7 = 0;
-  LATB.RB6 = 0;
-  LATB = 0;
+
+  LoadChars();
+  
+  if (!(Button(LATB,2,1,0))) {
+     portTest();
+  }
+
   INTCON.GIE = 1;                     //Global Interrupt Enable
   lastB = PORTB;
   INTCON.RBIF = 0;
