@@ -121,6 +121,7 @@ void changeBandDisplay(int direction);
 void setBandDelay(void);
 void setBand(void);
 void setTX_OUT(void);
+void setTX_OFF(void);
 void checkRXAnalogs(void);
 void checkTXAnalogs(void);
 void changeKeyModeLCD();

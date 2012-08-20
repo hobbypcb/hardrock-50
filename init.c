@@ -106,7 +106,7 @@ void init() {
 
   LoadChars();
   
-  if (!(Button(LATB,2,1,0))) {
+  if (Button(PORTB,2,1,1)) {
      portTest();
   }
 

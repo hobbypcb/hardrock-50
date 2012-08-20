@@ -30,7 +30,15 @@ void setTX_OUT() {
         delay_ms(30);
      }
      TX_OUT = 1;
+     TX_LED = 1;
+     PWR_LED = 0;
 
+}
+
+void setTX_OFF() {
+     TX_OUT = 0;
+     TX_LED = 0;
+     PWR_LED = 1;
 }
 
 void changeKey() {

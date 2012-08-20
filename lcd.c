@@ -19,7 +19,7 @@
 #include "defs.h"
 
 char SPLASH_TOP[] = "HARDROCK-50 AMP";
-char SPLASH_BOTTOM[] = "VERSION 3 FW:1.1";
+char SPLASH_BOTTOM[] = "VERSION 3 FW:1.2";
 
 char RX_TOP_BAND[] = " BAND:";
 char RX_TOP_KEY[] = "KEY:";

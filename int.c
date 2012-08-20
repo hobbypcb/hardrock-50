@@ -37,7 +37,7 @@ void interrupt() {
            delay_ms(30);
           } else {
            txState = 0;
-           TX_OUT = 0;
+           setTX_OFF();
            lcdFlag = 1;
            delay_ms(30);
           }
@@ -53,7 +53,7 @@ void interrupt() {
            delay_ms(30);
           } else {
            txState = 0;
-           TX_OUT = 0;
+           setTX_OFF();
            lcdFlag = 1;
            delay_ms(30);
           }
