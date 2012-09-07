@@ -115,6 +115,9 @@ void setBand() {
                  break;
 
             case _17M:
+                 _17_20M_RLY = 1;
+                 DTC1 = 1;
+                 break;
             case _20M:
                  _17_20M_RLY = 1;
                  DTC2 = 1;
