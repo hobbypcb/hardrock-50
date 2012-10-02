@@ -23,6 +23,7 @@ const char meterTop_CHR[] = {31,31,31,0,0,0,0,0};
 const char meterBottom_CHR[] = {0,0,0,0,31,31,31,0};
 
 
+
 void LoadChars() {
     char i;
     Lcd_Cmd(64);
@@ -39,6 +40,8 @@ void LoadChars() {
 }
 
 void init() {
+
+  int diagCounter, i;
   keymode = 2;
   ANSELA = 0b00000011;
   ANSELB = 0;                        // Configure PORTB pins as digital
@@ -50,18 +53,18 @@ void init() {
   ADCON1 = 0b00001000;  // PVCFG<1:0> bit 3-2 10 for A/D VREF+ connected to internal signal, FVR BUF2
   VREFCON0 = 0b10110000;
   
-  // Timer0 Registers:// 16-Bit Mode; Prescaler=1:256; TMRH Preset=B; TMRL Preset=DC; Freq=1.00Hz; Period=1,000,000,000 ns
-  T0CON.TMR0ON = 0;// Timer0 On/Off Control bit:1=Enables Timer0 / 0=Stops Timer0
+  //  Set up timer0 for 1ms timing.  Will us this for timing various actions including the debounce functions.
+  // Timer0 Registers:// 16-Bit Mode; Prescaler=1:1; TMRH Preset=C1; TMRL Preset=80; Freq=1,000.00Hz; Period=1.00 ms
   T0CON.T08BIT = 0;// Timer0 8-bit/16-bit Control bit: 1=8-bit timer/counter / 0=16-bit timer/counter
   T0CON.T0CS   = 0;// TMR0 Clock Source Select bit: 0=Internal Clock (CLKO) / 1=Transition on T0CKI pin
   T0CON.T0SE   = 0;// TMR0 Source Edge Select bit: 0=low/high / 1=high/low
-  T0CON.PSA    = 0;// Prescaler Assignment bit: 0=Prescaler is assigned; 1=NOT assigned/bypassed
-  T0CON.T0PS2  = 1;// bits 2-0  PS2:PS0: Prescaler Select bits
-  T0CON.T0PS1  = 1;// Set 1:256
-  T0CON.T0PS0  = 1;
-  INTCON.TMR0IE = 1;
-//  TMR0H = 0xB;    // preset for Timer0 MSB register
-//  TMR0L = 0xDC;    // preset for Timer0 LSB register
+  T0CON.PSA    = 1;// Prescaler Assignment bit: 0=Prescaler is assigned; 1=NOT assigned/bypassed
+  T0CON.T0PS2  = 0;// bits 2-0  PS2:PS0: Prescaler Select bits
+  T0CON.T0PS1  = 0;
+  T0CON.T0PS0  = 0;
+  TMR0H = 0xC1;    // preset for Timer0 MSB register
+  TMR0L = 0x80;    // preset for Timer0 LSB register
+
 
   CM1CON0 = 0;
   CM2CON = 0;
@@ -73,11 +76,13 @@ void init() {
   T3CON = 0;
 
   INTCON2.INTEDG0 = 1;               //Configure INT0-2 as rising edge interrupts
-  INTCON.INT0IE = 1;                //Enable INT0-2
+  INTCON.INT0IE = 0;                //Disable INT0-2
   INTCON2.INTEDG1 = 1;
-  INTCON3.INT1IE = 1;
-  INTCON2.INTEDG2 = 1;
+  INTCON3.INT1IE = 0;
+  INTCON2.INTEDG2 = 0;
   INTCON3.INT2IE = 1;
+  
+  INTCON.TMR0IE = 1;
 
   INTCON.RBIE = 1;                   //Enable PORTB Interrupt on Change
   IOCB.IOCB4 = 0;                    //Enable IOC on RB4/5
@@ -106,17 +111,38 @@ void init() {
 
   LoadChars();
   
-  if (Button(PORTB,2,1,1)) {
-     portTest();
+  if (!PORTB.B2) {
+     diagCounter = 0;
+     for (i = 1; i<=10; i++) {
+         if (!PORTB.B2) {
+            diagCounter++;
+         } else {
+            diagCounter--;
+         }
+         delay_ms(3);
+     }
+     if (diagCounter >= 7) {
+        portTest();
+     }
   }
+/*if (Button(LATB,2,40,1)) {
+     portTest();
+  }*/
 
   INTCON.GIE = 1;                     //Global Interrupt Enable
   lastB = PORTB;
   INTCON.RBIF = 0;
-  INTCON.INT0IF = 0;
+/*INTCON.INT0IF = 0;
   INTCON3.INT2IF = 0;
-  INTCON3.INT1IF = 0;
+  INTCON3.INT1IF = 0;*/
+  INTCON.TMR0IF = 0;
   
   ADC_INIT();
+  
+  bandUpFlag = 0;
+  bandDownFlag = 0;
+  keyModeFlag = 0;
+
+  T0CON.TMR0ON = 1;// Timer0 On/Off Control bit:1=Enables Timer0 / 0=Stops Timer0 ]
 
 }

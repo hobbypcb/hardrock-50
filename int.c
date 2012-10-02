@@ -26,20 +26,15 @@ void interrupt() {
         snapshotB = PORTB;      // end any mismatch before clear, take snapshot
         lastB = lastB ^ snapshotB; // xor previous value with current value to detect which pin changed
 
+        INTCON.RBIF = 0;        // clear interrupt flag
+        INTCON.RBIE = 0;        // Disable interrupt
 
         if (lastB.key == 1)
         { // Key Line changed - check value and set flags
-          if (snapshotB.key == active)
-          {
-           txState = 1;
-           setTX_OUT();
-           lcdFlag = 1;
-           delay_ms(30);
+          if (snapshotB.key == active) {
+           setTX_ON();
           } else {
-           txState = 0;
            setTX_OFF();
-           lcdFlag = 1;
-           delay_ms(30);
           }
         }
 
@@ -47,58 +42,36 @@ void interrupt() {
         { // COR Line changed - check value and set flags
           if (snapshotB.cor == 0)
           { // Carrier Detect when COR Line is LOW
-           txState = 1;
-           setTX_OUT();
-           lcdFlag = 1;
-           delay_ms(30);
+           setTX_ON();
           } else {
-           txState = 0;
            setTX_OFF();
-           lcdFlag = 1;
-           delay_ms(30);
           }
         }
-        INTCON.RBIF = 0;        // clear interrupt flag
+        rbDelayFlag = 1;
         lastB = PORTB;
       }
       else if (INTCON.INT0IF)
       { // BAND-DOWN - INT0 interrupt
-        changeBandDisplay(-1);
-        delay_ms(30);
-      //  setBandDelay();
-        bandFlag = 1;
-        lcdFlag = 1;
-;
-        INTCON.INT0IF = 0; // Clear interrupt flag bit
-
+        INTCON.INT0IF = 0;
+        INTCON.INT0IE = 0;
       }
       else if (INTCON3.INT1IF)
       { // BAND-UP - INT1 interrupt
-        changeBandDisplay(+1);
-        delay_ms(30);
-      //  setBandDelay();
-        bandFlag = 1;
-        lcdFlag = 1;
-
-        INTCON3.INT1IF = 0;  // Clear interrupt flag bit
-
+        INTCON3.INT1IF = 0;
+        INTCON3.INT1IE = 0;
       }
       else if (INTCON3.INT2IF)
       { // KEY MODE - INT2 interrupt
-        changeKeyMode();
-        delay_ms(30);
-
-        lcdFlag = 1;
-
-        INTCON3.INT2IF = 0;  // Clear interrupt flag bit
-
+        INTCON3.INT2IF = 0;
+        INTCON3.INT2IE = 0;
       }
       else if (INTCON.TMR0IF)
       {
-        T0CON.TMR0ON = 0;   // Disable Timer0
+        //  Reset for 1ms next interrupt
+        TMR0H = 0xC1;    // preset for Timer0 MSB register
+        TMR0L = 0x80;    // preset for Timer0 LSB register
         timer0Flag = 1;
         INTCON.TMR0IF = 0;
-        bandFlag = 1;
       }
       
       

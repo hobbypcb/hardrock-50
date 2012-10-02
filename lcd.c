@@ -19,18 +19,18 @@
 #include "defs.h"
 
 char SPLASH_TOP[] = "HARDROCK-50 AMP";
-char SPLASH_BOTTOM[] = "VERSION 3 FW:1.3";
+char SPLASH_BOTTOM[] = "VERSION 3 FW:1.4";
 
 char RX_TOP_BAND[] = " BAND:";
 char RX_TOP_KEY[] = "KEY:";
 char BAND_STR[] = "160M";
 char KEY_STR[] = "SB";
 char RX_BOTTOM[] = "104.1      13.8V";
-char TX_BOTTOM[] = "SWR:1.7  PEP:";
+char TX_BOTTOM[] = "SWR:-.-  PEP:";
 char VOLT_STR[] = "00.0V";
 char TEMP_STR[] = "000";
 char PEP_STR[] = "00W";
-char VSWR_STR[] = "0.0";
+char VSWR_STR[] = "-.-";
 char *res = 0;
 
 

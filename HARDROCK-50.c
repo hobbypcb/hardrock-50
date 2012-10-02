@@ -24,6 +24,7 @@ unsigned short lcdFlag = 1;
 unsigned short txState = 0, lastB = 0, timer0Flag = 0, bandFlag = 1, bandDispFlag = 1, keyDispFlag;
 unsigned short keymode = 0;
 unsigned short band = 10;
+unsigned short temperatureFlag = 0, voltageFlag = 0, eepromUpdateFlag = 0, calcSwrFlag = 0;
 
 
 
@@ -32,19 +33,36 @@ void main(){
 
 
   init();
-
+  /*// Read saved band value from the first position in eeprom
+  band = EEPROM_Read(1);
+  // Check to make sure it is a valid band
+  if (band > 10) { band = 10; }*/
+  
   while(1) {                         // Endless loop
 
       if (txState == 1) {
-        checkTXAnalogs();
-      } else {
-        checkRXAnalogs();
-      }
+         checkTXAnalogs();
+         if (calcSwrFlag) {
+            calculateVswr();
+         }
 
-      if (lcdFlag == 1) {
-         updateLCD();
+
+      } else {
+        checkButtons();
+        if (temperatureFlag) {
+           checkTemperature();
+        }
+        if (voltageFlag) {
+           checkVoltage();
+           // We're outside of TX, reset SWR to unknown TODO: Move this someplace better
+           memcpy(VSWR_STR, "-.-", 3);
+        }
       }
       
+      if (timer0Flag == 1) {
+         processTimerFlags();
+      }
+
       if (keyDispFlag == 1) {
          changeKeyModeLCD();
       }
@@ -52,6 +70,18 @@ void main(){
       if (bandDispFlag == 1) {
          changeBandLCD();
       }
+      
+      if (lcdFlag == 1) {
+         updateLCD();
+      }
+      
+      /*if (eepromUpdateFlag == 1) {
+          // Svae band to first position in eeprom
+          EEPROM_Write(1, band);
+          eepromUpdateFlag = 0;
+      }*/
+      
+
       
 
 

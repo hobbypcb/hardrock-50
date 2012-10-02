@@ -35,10 +35,14 @@ sbit LCD_D7_Direction at TRISD0_bit;
 
 
 // LED connections
-#define PWR_LED LATC.B0
-#define TX_LED LATC.B1
+#define PWR_LED LATC.B1
+#define TX_LED LATC.B0
 
 #define TX_OUT LATE.B0
+
+#define BAND_UP PORTB.B0
+#define BAND_DOWN PORTB.B1
+#define KEY_MODE  PORTB.B2
 
 
 // PORT B button connections
@@ -87,7 +91,8 @@ sbit LCD_D7_Direction at TRISD0_bit;
 #define meterTop 2
 #define meterBottom 3
 
-// Interrupt constants
+// Button change constants
+#define POSITIVE_COUNT   8
 
 
 
@@ -105,6 +110,10 @@ extern char TEMP_STR[5];
 extern char PEP_STR[3];
 extern char VSWR_STR[3];
 extern unsigned int VOLT, TEMP, FWD_PWR, RFL_PWR;
+extern unsigned int bandUpFlag, bandDownFlag, keyModeFlag, rbDelayFlag, eepromUpdateFlag;
+extern unsigned int rbDelayCounter;
+extern unsigned int _100msCount;
+extern unsigned short temperatureFlag = 0, voltageFlag = 0, calcSwrFlag = 0;
 
 // Function Prototypes
 
@@ -120,11 +129,16 @@ void setKeyLcd(char mode);
 void changeBandDisplay(int direction);
 void setBandDelay(void);
 void setBand(void);
-void setTX_OUT(void);
+void setTX_ON(void);
 void setTX_OFF(void);
-void checkRXAnalogs(void);
+void checkTemperature(void);
+void checkVoltage(void);
 void checkTXAnalogs(void);
 void changeKeyModeLCD();
 void changeBandLCD();
 void setPowerMeter(float fwdpwr, float rflpwr);
 void portTest();
+void processTimerFlags();
+void checkButtons();
+void checkTxState();
+void calculateVswr();

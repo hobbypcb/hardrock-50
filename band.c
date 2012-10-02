@@ -22,13 +22,20 @@
 
 void changeBandDisplay(int direction) {
      if (direction > 0) {
-        band = band + 1;
-        if (band > 10) { band = 10; }
-        if (band == _60M) { band = _80M; } // Skip over 60M going up
+        if (band == 10) { 
+           band = 10; 
+        } else {
+           band++;
+           if (band == _60M) { band = _80M; } // Skip over 60M going up
+        }
      } else if (direction < 0) {
-        band = band -1;
-        if (band < 0) { band = 0; }
-        if (band == _60M) { band = _40M; } // Skip over 60M going down
+;
+        if (band == 0) {
+           band = 0; 
+        } else {
+           band--;
+           if (band == _60M) { band = _40M; } // Skip over 60M going down
+        }
      }
      bandDispFlag = 1;
 }
@@ -138,4 +145,5 @@ void setBand() {
                  _80M_RLY = 1;
                  break;
      }
+     eepromUpdateFlag = 1;
 }

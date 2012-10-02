@@ -21,9 +21,18 @@
 unsigned int VOLT = 1000;
 unsigned int TEMP = 1000;
 unsigned int FWD_PWR, RFL_PWR;
+unsigned int bandUpFlag, bandDownFlag, keyModeFlag, rbDelayFlag;
+unsigned int _10msCount, _100msCount, _1000msCount, _1sCount;
+float fl_fwdpwr, fl_rflpwr, fl_vswr, fl_ratioPlus, fl_ratioMinus, fl_voltFwd, fl_voltRfl;
+unsigned int tmp_fwdpwr = 1;
+unsigned int tmp_rflpwr = 1;
+char fwdpwr_float_char[15];
+char vswr_float_char[15];
+char tmp_char[8];
 
-void setTX_OUT() {
 
+void setTX_ON() {
+     txState = 1;
      if (bandFlag == 1) {
         setBand();
         bandFlag = 0;
@@ -32,43 +41,31 @@ void setTX_OUT() {
      TX_OUT = 1;
      TX_LED = 1;
      PWR_LED = 0;
-
+     lcdFlag = 1;
 }
 
 void setTX_OFF() {
+     txState = 0;
      TX_OUT = 0;
      TX_LED = 0;
      PWR_LED = 1;
+     temperatureFlag = 1;
+     voltageFlag = 1;
+     lcdFlag = 1;
 }
 
 void changeKey() {
      keymode++;
 }
 
-void checkRXAnalogs() {
-     int i, j, int_temp;
-     unsigned int tmp_volt = 0;
+void checkTemperature() {
+
+     int i, int_temp;
      unsigned int tmp_temp = 0;
-     float voltage, temperature;
-     char volt_float_char[15];
+     float temperature;
      char temp_float_char[15];
      char temp_int_char[7];
-     char tmp_char[8];
-     for (i = 1; i<=10; i++) {
-         tmp_volt = tmp_volt + ADC_Read(VOLT_CH);
-     }
-     tmp_volt = tmp_volt / 10;
 
-     if (tmp_volt != VOLT) {
-        VOLT = tmp_volt;
-        voltage = tmp_volt * 4;
-        voltage = voltage / 1000;
-        voltage = voltage * 4.191;
-        FloatToStr(voltage, volt_float_char);
-        memcpy(VOLT_STR, volt_float_char, 4);
-        lcdFlag = 1;
-     }
-     delay_ms(5);
      // May want to change voltage reference to 1.024V instead of 4.096V
      // for better resolution
      for (i = 1; i<=10; i++) {
@@ -86,17 +83,38 @@ void checkRXAnalogs() {
         memcpy(TEMP_STR, temp_float_char, 3);
         lcdFlag = 1;
      }
+     temperatureFlag = 0;
+}
+
+void checkVoltage() {
+     int i;
+     unsigned int tmp_volt = 0;
+     float voltage;
+     char volt_float_char[15];
+     char tmp_char[8];
+     for (i = 1; i<=10; i++) {
+         tmp_volt = tmp_volt + ADC_Read(VOLT_CH);
+     }
+     tmp_volt = tmp_volt / 10;
+
+     if (tmp_volt != VOLT) {
+        VOLT = tmp_volt;
+        voltage = tmp_volt * 4;
+        voltage = voltage / 1000;
+        voltage = voltage * 4.191;
+        FloatToStr(voltage, volt_float_char);
+        memcpy(VOLT_STR, volt_float_char, 4);
+        lcdFlag = 1;
+     }
+     voltageFlag = 0;
 
 }
 
+
+
 void checkTXAnalogs() {
      int i, j;
-     unsigned int tmp_fwdpwr = 1;
-     unsigned int tmp_rflpwr = 1;
-     float fl_fwdpwr, fl_rflpwr, fl_vswr, fl_ratioPlus, fl_ratioMinus, fl_voltFwd, fl_voltRfl;
-     char fwdpwr_float_char[15];
-     char vswr_float_char[15];
-     char tmp_char[8];
+
      
      for (i = 1; i<=10; i++) {
          tmp_fwdpwr = tmp_fwdpwr + ADC_Read(FWD_PWR_CH);
@@ -126,14 +144,6 @@ void checkTXAnalogs() {
         fl_rflpwr = fl_rflpwr * fl_rflpwr;
         fl_rflpwr = fl_rflpwr * 50;
         
-     // Calculate VSWR
-        fl_vswr = fl_voltRfl / fl_voltFwd;
-        fl_ratioPlus = 1.0 + fl_vswr;
-        fl_ratioMinus = 1.0 - fl_vswr;
-        fl_vswr = fl_ratioPlus / fl_ratioMinus;
-        
-        FloatToStr(fl_vswr, vswr_float_char);
-        memcpy(VSWR_STR, vswr_float_char, 3);
         lcdFlag = 1;
      }
 /*FloatToStr(fl_rflpwr, fwdpwr_float_char);
@@ -141,6 +151,21 @@ void checkTXAnalogs() {
         lcdFlag = 1;*/
         setPowerMeter(fl_fwdpwr, fl_rflpwr);
 
+}
+
+void calculateVswr() {
+     // Calculate VSWR only if fl_fwdpwr > 10
+        if (fl_fwdpwr > 10) {
+          fl_vswr = fl_voltRfl / fl_voltFwd;
+          fl_ratioPlus = 1.0 + fl_vswr;
+          fl_ratioMinus = 1.0 - fl_vswr;
+          fl_vswr = fl_ratioPlus / fl_ratioMinus;
+
+          FloatToStr(fl_vswr, vswr_float_char);
+          memcpy(VSWR_STR, vswr_float_char, 3);
+          lcdFlag = 1;
+        }
+        calcSwrFlag = 0;
 }
 
 void setPowerMeter(float fwdpwr, float rflpwr) {
@@ -168,4 +193,92 @@ void setPowerMeter(float fwdpwr, float rflpwr) {
          
 
      }
+}
+
+void processTimerFlags() {
+     _10msCount++;
+     if (_10msCount > 9) {
+        _100msCount = _100msCount + 10;
+     }
+     if (_100msCount > 99) {
+        _1000msCount = _1000msCount + 100;
+        _100msCount = 0;
+        if (rbDelayFlag == 1) {
+           checkTxState();
+        }
+     }
+     if (_1000msCount > 999) {
+        _1sCount++;
+        _1000msCount = 0;
+        voltageFlag = 1;
+        calcSwrFlag = 1;
+     }
+     if (_1sCount > 4) {
+        temperatureFlag = 1;
+        _1sCount = 0;
+     }
+     timer0Flag = 0;
+
+}
+
+void checkButtons() {
+      if (Button(&PORTB, 0, 20, 1)) {               // Detect logical one
+        bandUpFlag = 1;                              // Update flag
+      }
+      if (bandUpFlag && Button(&PORTB, 0, 20, 0)) {   // Detect one-to-zero transition
+         changeBandDisplay(+1);
+         bandFlag = 1;
+         lcdFlag = 1;                           // Invert PORTC
+         bandUpFlag = 0;                              // Update flag
+      }
+
+      if (Button(&PORTB, 1, 20, 1)) {               // Detect logical one
+        bandDownFlag = 1;                              // Update flag
+      }
+      if (bandDownFlag && Button(&PORTB, 1, 20, 0)) {
+         changeBandDisplay(-1);
+         bandFlag = 1;
+         lcdFlag = 1;
+         bandDownFlag = 0;                              // Update flag
+      }
+      if (Button(&PORTB, 2, 20, 1)) {               // Detect logical one
+         keyModeFlag = 1;                              // Update flag
+      }
+      if (keyModeFlag && Button(&PORTB, 2, 20, 0)) {
+         changeKeyMode();
+         lcdFlag = 1;
+         keyModeFlag = 0;
+      }
+}
+
+
+void checkTxState() {
+   if (keyMode == PT) {
+
+      if (PORTB.key == 0 && txState == 1) {
+           // The PTT line is off, need to turn TX off
+           txState = 0;
+           setTX_OFF();
+           lcdFlag = 1;
+      }
+      if (PORTB.key == 1 && txState == 0) {
+         // The PTT line is on, we aren't in TX, we need to turn TX on
+           setTX_ON();
+      }
+   }
+   if (keyMode == CR) {
+      // Carrier Detect when COR Line is LOW
+      if (PORTB.cor == 1 && txState == 1) {
+           // The COR line is HIGH (OFF), need to turn TX off
+           setTX_OFF();
+      }
+      if (PORTB.cor == 0 && txState == 0) {
+         // The COR line is on (LOW), we aren't in TX, we need to turn TX on
+           setTX_ON();
+      }
+   }
+   // Clear Interrupt Flag and re-enable interrupts
+   INTCON.RBIF = 0;        // clear interrupt flag
+   INTCON.RBIE = 1;        // Enable interrupt
+
 }
