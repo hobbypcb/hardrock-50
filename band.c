@@ -30,8 +30,9 @@ void changeBandDisplay(int direction) {
         }
      } else if (direction < 0) {
 ;
-        if (band == 0) {
-           band = 0; 
+       // Stopping the band change at 2 (12M for the FCC Version)  To allow 6/10 change the 2's to 0's
+        if (band < 2) {
+           band = 2;
         } else {
            band--;
            if (band == _60M) { band = _40M; } // Skip over 60M going down
