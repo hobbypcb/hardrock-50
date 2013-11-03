@@ -24,8 +24,9 @@ unsigned short lcdFlag = 1;
 unsigned short txState = 0, lastB = 0, timer0Flag = 0, bandFlag = 1, bandDispFlag = 1, keyDispFlag;
 unsigned short keymode = 0;
 unsigned short band = 10;
+unsigned short tempmode = 0; // 0 - F; 1 = C
 unsigned short temperatureFlag = 0, voltageFlag = 0, eepromUpdateFlag = 0, calcSwrFlag = 0;
-
+char ms_count;
 
 
 void main(){
@@ -33,11 +34,22 @@ void main(){
 
 
   init();
-  /*// Read saved band value from the first position in eeprom
+  // Read saved band value from the first position in eeprom
   band = EEPROM_Read(1);
   // Check to make sure it is a valid band
-  if (band > 10) { band = 10; }*/
+  if (band > 10) { band = 10; }
+  changeBandLCD();
+  // Read saved keymode value from the 2nd position in eeprom
+  keymode = EEPROM_Read(2);
+  // Check to make sure it is a valid keymode
+  if (keymode > 2) { keymode = 2; }
+  changeKeyMode();
+
+  checkTemperature();
   
+  checkVoltage();
+  ms_count = 0;
+
   while(1) {                         // Endless loop
 
       if (txState == 1) {
@@ -54,39 +66,26 @@ void main(){
         }
         if (voltageFlag) {
            checkVoltage();
-           // We're outside of TX, reset SWR to unknown TODO: Move this someplace better
-           memcpy(VSWR_STR, "-.-", 3);
-        }
+         }
+        if (keyDispFlag == 1) {
+           changeKeyModeLCD();
+         }
       }
-      
-      if (timer0Flag == 1) {
+
+      if (++ms_count == 10) {
+         ms_count = 0;
          processTimerFlags();
       }
 
-      if (keyDispFlag == 1) {
-         changeKeyModeLCD();
-      }
-      
-      if (bandDispFlag == 1) {
-         changeBandLCD();
-      }
-      
       if (lcdFlag == 1) {
          updateLCD();
       }
       
-      /*if (eepromUpdateFlag == 1) {
-          // Svae band to first position in eeprom
+      if (eepromUpdateFlag == 1) {
+          // Save band to first position in eeprom
           EEPROM_Write(1, band);
           eepromUpdateFlag = 0;
-      }*/
-      
-
-      
-
-
-
-
-
+      }
+      delay_ms(1);
   }
 }

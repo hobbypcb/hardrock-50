@@ -18,21 +18,26 @@
 
 #include "defs.h"
 
-unsigned int VOLT = 1000;
-unsigned int TEMP = 1000;
-unsigned int FWD_PWR, RFL_PWR;
+extern char ms_count;
+unsigned int FWD_PWR, RFL_PWR, AVE_FWP = 0, AVE_RFP = 0, PEP_FWP = 0;
 unsigned int bandUpFlag, bandDownFlag, keyModeFlag, rbDelayFlag;
-unsigned int _10msCount, _100msCount, _1000msCount, _1sCount;
+unsigned int _10msCount = 0, _100msCount, _1000msCount, _1sCount, PEP_cnt = 0;
 float fl_fwdpwr, fl_rflpwr, fl_vswr, fl_ratioPlus, fl_ratioMinus, fl_voltFwd, fl_voltRfl;
 unsigned int tmp_fwdpwr = 1;
 unsigned int tmp_rflpwr = 1;
 char fwdpwr_float_char[15];
 char vswr_float_char[15];
+unsigned int vswr_len;
 char tmp_char[8];
+unsigned int last_STATE = 7;
+unsigned int last_atemp = 0, last_avolt = 0;
+unsigned int a_volt = 0, a_temp = 0;
+float factor[11] = {1.354014 * SCALE, 1.217817 * SCALE, 1.208466 * SCALE, 1.168001 * SCALE, 1.157946 * SCALE,
+                 1.135676 * SCALE, 1.105976 * SCALE, 1.081982 * SCALE, 1.0 * SCALE, 1.023131 * SCALE, 1.03489 * SCALE};
+
 
 
 void setTX_ON() {
-     txState = 1;
      if (bandFlag == 1) {
         setBand();
         bandFlag = 0;
@@ -40,8 +45,12 @@ void setTX_ON() {
      }
      TX_OUT = 1;
      TX_LED = 1;
+     PEP_FWP = 0;
+     PEP_cnt = 0;
      PWR_LED = 0;
      lcdFlag = 1;
+     txState = 1;
+     delay_ms(50);
 }
 
 void setTX_OFF() {
@@ -52,11 +61,9 @@ void setTX_OFF() {
      temperatureFlag = 1;
      voltageFlag = 1;
      lcdFlag = 1;
+     delay_ms(50);
 }
 
-void changeKey() {
-     keymode++;
-}
 
 void checkTemperature() {
 
@@ -66,23 +73,23 @@ void checkTemperature() {
      char temp_float_char[15];
      char temp_int_char[7];
 
-     // May want to change voltage reference to 1.024V instead of 4.096V
-     // for better resolution
-     for (i = 1; i<=10; i++) {
-         tmp_temp = tmp_temp + ADC_READ(TEMP_CH);
-     }
-     tmp_temp = tmp_temp / 10;
+
      tmp_temp = ADC_READ(TEMP_CH);
-     if (tmp_temp != TEMP) {
-        TEMP = tmp_temp;
-        temperature = tmp_temp * 4;
-        temperature = temperature / 10;
-        temperature = temperature * 1.8;
-        temperature = temperature + 32;
-        FloatToStr(temperature, temp_float_char);
-        memcpy(TEMP_STR, temp_float_char, 3);
-        lcdFlag = 1;
-     }
+     a_temp = (a_temp + tmp_temp) >> 1;
+
+     temperature = a_temp * 4;
+     temperature = temperature / 10;
+     if (a_temp != last_atemp){
+      last_atemp = a_temp;
+         if (tempmode == 0) {
+            temperature = temperature * 1.8;
+            temperature = temperature + 32;
+         }
+       FloatToStr(temperature, temp_float_char);
+       memcpy(TEMP_STR, temp_float_char, 3);
+       lcdFlag = 1;
+      }
+
      temperatureFlag = 0;
 }
 
@@ -92,21 +99,20 @@ void checkVoltage() {
      float voltage;
      char volt_float_char[15];
      char tmp_char[8];
-     for (i = 1; i<=10; i++) {
-         tmp_volt = tmp_volt + ADC_Read(VOLT_CH);
-     }
-     tmp_volt = tmp_volt / 10;
+     tmp_volt = ADC_Read(VOLT_CH);
 
-     if (tmp_volt != VOLT) {
-        VOLT = tmp_volt;
-        voltage = tmp_volt * 4;
-        voltage = voltage / 1000;
-        voltage = voltage * 4.191;
+     a_volt = (a_volt + tmp_volt) >> 1;
+     voltage = a_volt * 4;
+     voltage = voltage / 1000;
+     voltage = voltage * 4.191;
+ 
+     if (a_volt != last_avolt){
+        last_avolt = voltage;
         FloatToStr(voltage, volt_float_char);
         memcpy(VOLT_STR, volt_float_char, 4);
         lcdFlag = 1;
+        voltageFlag = 0;
      }
-     voltageFlag = 0;
 
 }
 
@@ -116,34 +122,56 @@ void checkTXAnalogs() {
      int i, j;
 
      
-     for (i = 1; i<=10; i++) {
-         tmp_fwdpwr = tmp_fwdpwr + ADC_Read(FWD_PWR_CH);
-     }
-     tmp_fwdpwr = tmp_fwdpwr / 10;
+ //    for (i = 1; i<=10; i++) {
+ //        tmp_fwdpwr = tmp_fwdpwr + ADC_Read(FWD_PWR_CH);
+ //    }
+     tmp_fwdpwr = ADC_Read(FWD_PWR_CH);
+     tmp_rflpwr = ADC_Read(RFL_PWR_CH);
+     
+     if (tmp_fwdpwr > AVE_FWP) AVE_FWP = (AVE_FWP * 2 + tmp_fwdpwr) / 3;
+     else AVE_FWP = (AVE_FWP * 14 + tmp_fwdpwr) / 15;
+     if (tmp_rflpwr > AVE_RFP) AVE_RFP = (AVE_RFP * 2 + tmp_rflpwr) / 3;
+     else AVE_RFP = (AVE_RFP * 14 + tmp_rflpwr) / 15;
 
-     if (tmp_fwdpwr != FWD_PWR) {
-        FWD_PWR = tmp_fwdpwr;
-        fl_fwdpwr = tmp_fwdpwr * 4;
+     if (tmp_fwdpwr > PEP_FWP) {
+        PEP_cnt = 0;
+        PEP_FWP = tmp_fwdpwr;
+        fl_fwdpwr = PEP_FWP * 4;
         fl_voltFwd = fl_fwdpwr / 1000;
         fl_fwdpwr = fl_voltFwd / 2.7;
         fl_fwdpwr = fl_fwdpwr * fl_fwdpwr;
-        fl_fwdpwr = fl_fwdpwr * 50;
+        fl_fwdpwr = fl_fwdpwr * 65;
+        fl_fwdpwr *= factor[band];
         FloatToStr(fl_fwdpwr, fwdpwr_float_char);
-        memcpy(PEP_STR, fwdpwr_float_char, 2);
+         memcpy(PEP_STR, fwdpwr_float_char, 3);
         lcdFlag = 1;     }
-     delay_ms(10);
-     for (j = 1; j<=10; j++) {
-       tmp_rflpwr = tmp_rflpwr + ADC_Read(RFL_PWR_CH);
-     }
-     tmp_rflpwr = tmp_rflpwr / 10;
-     if (tmp_rflpwr != RFL_PWR) {
-        RFL_PWR = tmp_rflpwr;
-        fl_rflpwr = tmp_rflpwr * 4;
+     else {
+        if (++PEP_cnt > 25) PEP_FWP = 0;
+        }
+     if (AVE_FWP != FWD_PWR) {
+        FWD_PWR = AVE_FWP;
+        fl_fwdpwr = AVE_FWP * 4;
+        fl_voltFwd = fl_fwdpwr / 1000;
+        fl_fwdpwr = fl_voltFwd / 2.7;
+        fl_fwdpwr = fl_fwdpwr * fl_fwdpwr;
+        fl_fwdpwr = fl_fwdpwr * 65;
+        fl_fwdpwr *= factor[band];
+        lcdFlag = 1;     }
+ 
+ //    delay_ms(10);
+ //    for (j = 1; j<=10; j++) {
+ //      tmp_rflpwr = tmp_rflpwr + ADC_Read(RFL_PWR_CH);
+ //    }
+
+
+    if (AVE_RFP != RFL_PWR) {
+        RFL_PWR = AVE_RFP;
+        fl_rflpwr = AVE_RFP * 4;
         fl_voltRfl = fl_rflpwr / 1000;
         fl_rflpwr = fl_voltRfl / 2.7;
         fl_rflpwr = fl_rflpwr * fl_rflpwr;
-        fl_rflpwr = fl_rflpwr * 50;
-        
+        fl_rflpwr = fl_rflpwr * 65;
+        fl_rflpwr *= factor[band];
         lcdFlag = 1;
      }
 /*FloatToStr(fl_rflpwr, fwdpwr_float_char);
@@ -155,7 +183,8 @@ void checkTXAnalogs() {
 
 void calculateVswr() {
      // Calculate VSWR only if fl_fwdpwr > 10
-        if (fl_fwdpwr > 10) {
+        if (fl_fwdpwr > 10) 
+        {
           fl_vswr = fl_voltRfl / fl_voltFwd;
           fl_ratioPlus = 1.0 + fl_vswr;
           fl_ratioMinus = 1.0 - fl_vswr;
@@ -163,6 +192,7 @@ void calculateVswr() {
 
           FloatToStr(fl_vswr, vswr_float_char);
           memcpy(VSWR_STR, vswr_float_char, 3);
+
           lcdFlag = 1;
         }
         calcSwrFlag = 0;
@@ -197,58 +227,47 @@ void setPowerMeter(float fwdpwr, float rflpwr) {
 
 void processTimerFlags() {
      _10msCount++;
-     if (_10msCount > 9) {
-        _100msCount = _100msCount + 10;
-     }
-     if (_100msCount > 99) {
-        _1000msCount = _1000msCount + 100;
-        _100msCount = 0;
-        if (rbDelayFlag == 1) {
-           checkTxState();
+     if (_10msCount == 5)
+        {
+         if (rbDelayFlag == 1) checkTxState();
         }
-     }
-     if (_1000msCount > 999) {
-        _1sCount++;
-        _1000msCount = 0;
-        voltageFlag = 1;
-        calcSwrFlag = 1;
-     }
-     if (_1sCount > 4) {
-        temperatureFlag = 1;
-        _1sCount = 0;
-     }
-     timer0Flag = 0;
-
+     if (_10msCount == 50)
+        {
+          voltageFlag = 1;
+          calcSwrFlag = 1;
+          temperatureFlag = 1;
+          lcdFlag = 1;
+          _10msCount = 0;
+        }
 }
 
 void checkButtons() {
-      if (Button(&PORTB, 0, 20, 1)) {               // Detect logical one
-        bandUpFlag = 1;                              // Update flag
-      }
-      if (bandUpFlag && Button(&PORTB, 0, 20, 0)) {   // Detect one-to-zero transition
-         changeBandDisplay(+1);
-         bandFlag = 1;
-         lcdFlag = 1;                           // Invert PORTC
-         bandUpFlag = 0;                              // Update flag
-      }
+char STATE;
 
-      if (Button(&PORTB, 1, 20, 1)) {               // Detect logical one
-        bandDownFlag = 1;                              // Update flag
-      }
-      if (bandDownFlag && Button(&PORTB, 1, 20, 0)) {
+     STATE = PORTB & 0x0f;
+     if (last_STATE == STATE) return;
+     last_STATE = STATE;
+ 
+     STATE = last_STATE & 0x01;
+     if (STATE == 0) {   // Detect one-to-zero transition
          changeBandDisplay(-1);
          bandFlag = 1;
          lcdFlag = 1;
-         bandDownFlag = 0;                              // Update flag
-      }
-      if (Button(&PORTB, 2, 20, 1)) {               // Detect logical one
-         keyModeFlag = 1;                              // Update flag
-      }
-      if (keyModeFlag && Button(&PORTB, 2, 20, 0)) {
-         changeKeyMode();
-         lcdFlag = 1;
-         keyModeFlag = 0;
-      }
+     }
+
+     STATE = last_STATE & 0x02;
+     if (STATE == 0) {
+        changeBandDisplay(+1);
+        bandFlag = 1;
+        lcdFlag = 1;
+     }
+
+     STATE = last_STATE & 0x04;
+     if (STATE == 0) {
+        changeKeyMode();
+        lcdFlag = 1;
+     }
+     delay_ms(20);
 }
 
 
@@ -277,8 +296,5 @@ void checkTxState() {
            setTX_ON();
       }
    }
-   // Clear Interrupt Flag and re-enable interrupts
-   INTCON.RBIF = 0;        // clear interrupt flag
-   INTCON.RBIE = 1;        // Enable interrupt
 
 }

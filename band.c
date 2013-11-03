@@ -21,23 +21,17 @@
 
 
 void changeBandDisplay(int direction) {
+     eepromUpdateFlag = 1;
      if (direction > 0) {
-        if (band == 10) { 
-           band = 10; 
-        } else {
-           band++;
-           if (band == _60M) { band = _80M; } // Skip over 60M going up
+        if (band < 10)  band++;
+        if (band == _60M) { band = _80M; } // Skip over 60M going up
         }
-     } else if (direction < 0) {
-;
-        if (band == 0) {
-           band = 0; 
-        } else {
-           band--;
-           if (band == _60M) { band = _40M; } // Skip over 60M going down
+     else {
+        if (band > 0)  band--;
+        if (band == _60M) { band = _40M; } // Skip over 60M going down
         }
-     }
-     bandDispFlag = 1;
+     Lcd_Out(1,13,"    ");
+     changeBandLCD();
 }
 
 void changeBandLCD() {
@@ -82,16 +76,11 @@ void changeBandLCD() {
                  memcpy(BAND_STR,"160M",4);
                  break;
                  // change interrupt here
+            default:
+                 memcpy(BAND_STR,"UNK ",4);
      }
-    bandDispFlag = 0;
-}
-
-void setBandDelay() {
-                     //  Load Timer0 with Preset value for 1 Second Delay
-  TMR0H = 0xB;       // preset for Timer0 MSB register
-  TMR0L = 0xDC;      // preset for Timer0 LSB register
-  INTCON.TMR0IF = 0; //Make sure interrupt flag is clear
-  T0CON.TMR0ON = 1;  // Timer0 On
+   Lcd_Out(1,13,BAND_STR);
+   bandDispFlag = 0;
 }
 
 void allBandRlyOFF() {
@@ -125,25 +114,24 @@ void setBand() {
                  _17_20M_RLY = 1;
                  DTC1 = 1;
                  break;
+  
             case _20M:
                  _17_20M_RLY = 1;
                  DTC2 = 1;
                  break;
-
+  
             case _30M:
                  _30_40M_RLY = 1;
                  DTC1 = 1;
                  DTC2 = 1;
                  break;
+ 
             case _40M:
                  _30_40M_RLY = 1;
-                 DTC1 = 0;
-                 DTC2 = 0;
                  break;
 
             case _80M:
                  _80M_RLY = 1;
                  break;
      }
-     eepromUpdateFlag = 1;
 }

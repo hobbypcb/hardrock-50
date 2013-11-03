@@ -94,7 +94,8 @@ sbit LCD_D7_Direction at TRISD0_bit;
 // Button change constants
 #define POSITIVE_COUNT   8
 
-
+// Wattmeter correction scale
+#define SCALE 0.87719
 
 // Global variables
 
@@ -111,9 +112,9 @@ extern char PEP_STR[3];
 extern char VSWR_STR[3];
 extern unsigned int VOLT, TEMP, FWD_PWR, RFL_PWR;
 extern unsigned int bandUpFlag, bandDownFlag, keyModeFlag, rbDelayFlag, eepromUpdateFlag;
-extern unsigned int rbDelayCounter;
 extern unsigned int _100msCount;
 extern unsigned short temperatureFlag = 0, voltageFlag = 0, calcSwrFlag = 0;
+extern unsigned short tempmode = 0; // 0 - F; 1 = C
 
 // Function Prototypes
 

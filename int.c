@@ -29,7 +29,7 @@ void interrupt() {
         INTCON.RBIF = 0;        // clear interrupt flag
         INTCON.RBIE = 0;        // Disable interrupt
 
-        if (lastB.key == 1)
+        if (keyMode == PT)
         { // Key Line changed - check value and set flags
           if (snapshotB.key == active) {
            setTX_ON();
@@ -38,7 +38,7 @@ void interrupt() {
           }
         }
 
-        if (lastB.cor == 1)
+        if (keyMode == CR)
         { // COR Line changed - check value and set flags
           if (snapshotB.cor == 0)
           { // Carrier Detect when COR Line is LOW
@@ -67,13 +67,11 @@ void interrupt() {
       }
       else if (INTCON.TMR0IF)
       {
-        //  Reset for 1ms next interrupt
-        TMR0H = 0xC1;    // preset for Timer0 MSB register
-        TMR0L = 0x80;    // preset for Timer0 LSB register
-        timer0Flag = 1;
         INTCON.TMR0IF = 0;
+        INTCON.TMR0IE = 0;
       }
-      
+      INTCON.RBIE = 1;        // Enable interrupt
+
       
 
 }

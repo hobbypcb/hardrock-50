@@ -55,6 +55,7 @@ void init() {
   
   //  Set up timer0 for 1ms timing.  Will us this for timing various actions including the debounce functions.
   // Timer0 Registers:// 16-Bit Mode; Prescaler=1:1; TMRH Preset=C1; TMRL Preset=80; Freq=1,000.00Hz; Period=1.00 ms
+  T0CON.TMR0ON = 0;// Timer0 On/Off Control bit:1=Enables Timer0 / 0=Stops Timer0
   T0CON.T08BIT = 0;// Timer0 8-bit/16-bit Control bit: 1=8-bit timer/counter / 0=16-bit timer/counter
   T0CON.T0CS   = 0;// TMR0 Clock Source Select bit: 0=Internal Clock (CLKO) / 1=Transition on T0CKI pin
   T0CON.T0SE   = 0;// TMR0 Source Edge Select bit: 0=low/high / 1=high/low
@@ -62,9 +63,9 @@ void init() {
   T0CON.T0PS2  = 0;// bits 2-0  PS2:PS0: Prescaler Select bits
   T0CON.T0PS1  = 0;
   T0CON.T0PS0  = 0;
-  TMR0H = 0xC1;    // preset for Timer0 MSB register
-  TMR0L = 0x80;    // preset for Timer0 LSB register
-
+  TMR0H = 0xd8;    // preset for Timer0 MSB register
+  TMR0L = 0xef;    // preset for Timer0 LSB register
+  INTCON.TMR0IF = 0;
 
   CM1CON0 = 0;
   CM2CON = 0;
@@ -125,17 +126,33 @@ void init() {
         portTest();
      }
   }
-/*if (Button(LATB,2,40,1)) {
-     portTest();
-  }*/
+  // Read saved tempmode from 3rd position in eeprom
+  tempmode = EEPROM_Read(3);
+  // Check to make sure it's a valid tempmode
+  if (tempmode > 1) { tempmode = 0; }
+  
+  if (!PORTB.B1) {
+        Lcd_Out(1,1,"Temp Mode: ");
 
-  INTCON.GIE = 1;                     //Global Interrupt Enable
+        if (tempmode == 1) {
+           tempmode = 0;
+           Lcd_Out(1,12,"F ");
+        }
+        else {
+           tempmode = 1;
+           Lcd_Out(1,12,"C ");
+        }
+        EEPROM_Write(3, tempmode);
+        delay_ms(3000);
+     }
+ 
   lastB = PORTB;
   INTCON.RBIF = 0;
 /*INTCON.INT0IF = 0;
   INTCON3.INT2IF = 0;
   INTCON3.INT1IF = 0;*/
-  INTCON.TMR0IF = 0;
+  INTCON.PEIE = 1;
+  INTCON.GIE = 1;                     //Global Interrupt Enable
   
   ADC_INIT();
   

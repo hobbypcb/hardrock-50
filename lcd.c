@@ -19,7 +19,7 @@
 #include "defs.h"
 
 char SPLASH_TOP[] = "HARDROCK-50 AMP";
-char SPLASH_BOTTOM[] = "VERSION 3 FW:1.4";
+char SPLASH_BOTTOM[] = "VER 3   FW: 1.4E";
 
 char RX_TOP_BAND[] = " BAND:";
 char RX_TOP_KEY[] = "KEY:";
@@ -31,12 +31,12 @@ char VOLT_STR[] = "00.0V";
 char TEMP_STR[] = "000";
 char PEP_STR[] = "00W";
 char VSWR_STR[] = "-.-";
-char *res = 0;
-
+char *res;
 
 
 void Show_RX() {                  // Function used for text moving
 //  Lcd_Cmd(_LCD_CLEAR);               // Clear display
+  memcpy(VSWR_STR, "-.-", 3);
   Lcd_Out(1,1,RX_TOP_KEY);
   LCD_Out(1,5,KEY_STR);
   Lcd_Out(1,7,RX_TOP_BAND);                 // Write text in first row
@@ -47,10 +47,12 @@ void Show_RX() {                  // Function used for text moving
   res = strchr(TEMP_STR,'.');
   if (res != 0) {
      Lcd_Chr(2,3,223);
-     LCD_Out(2,4,"F       ");
+     if (tempmode == 0) LCD_Out(2,4,"F       ");
+     if (tempmode == 1) LCD_Out(2,4,"C       ");
   } else {
      Lcd_Chr(2,4,223);
-     LCD_Out(2,5,"F      ");
+     if (tempmode == 0) LCD_Out(2,5,"F      ");
+     if (tempmode == 1) LCD_Out(2,5,"C      ");
   }
   LCD_Out(2,12,VOLT_STR);
 //  Lcd_Out(2,1,RX_BOTTOM);                 // Write text in second row
@@ -64,8 +66,10 @@ void Show_TX() {
   Lcd_chr(1, 3, meterTop);
   Lcd_chr(1, 4, meterBottom);*/
   Lcd_Out(2,1,TX_BOTTOM);                 // Write text in second row
+  Lcd_Out(2,5,"0.0 ");
   Lcd_Out(2,5,VSWR_STR);
   Lcd_Out(2,14,PEP_STR);
+
   i = 0;
 }
 
@@ -92,6 +96,7 @@ void updateLCD() {
 }
 
 void changeKeyMode() {
+     EEPROM_Write(2, keymode);
      keymode = keymode + 1;
      if (keymode > 2) { keymode = 0; }
      keyDispFlag = 1;
