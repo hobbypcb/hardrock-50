@@ -298,3 +298,12 @@ void checkTxState() {
    }
 
 }
+
+// copy const to ram string
+char * CopyConst2Ram(char * dest, const char * src){
+  char * d ;
+  d = dest;
+  for(;*dest++ = *src++;)
+    ;
+  return d;
+}

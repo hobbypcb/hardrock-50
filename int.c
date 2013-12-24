@@ -19,7 +19,6 @@
 #include "defs.h"
 
 unsigned short snapshotB;
-
 void interrupt() {
      if (INTCON.RBIF)
      {  // RBIF set by change on PORTB b4-b7 (see Data Sheet P101)
@@ -69,6 +68,19 @@ void interrupt() {
       {
         INTCON.TMR0IF = 0;
         INTCON.TMR0IE = 0;
+      }
+      else if(RC1IF_bit == 1) 
+      {                             // Checks for Receive Interrupt Flag bit
+        rxbuff[uartPtr] = UART1_Read();   // Storing read data
+        flags1.newdata = 1;
+        if(rxbuff[uartPtr] == 0x3B)
+         {
+             flags1.UART_Buffer_Full = 1;
+             BufferLength = uartPtr;
+         }
+        uartPtr++;                     // point to most recent character
+
+        if((uartPtr > 256 - 1)||(flags1.UART_Buffer_Full))uartPtr = 0;
       }
       INTCON.RBIE = 1;        // Enable interrupt
 

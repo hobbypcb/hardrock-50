@@ -22,6 +22,8 @@ const char meterBoth_CHR[] = {31,31,31,0,31,31,31,0};
 const char meterTop_CHR[] = {31,31,31,0,0,0,0,0};
 const char meterBottom_CHR[] = {0,0,0,0,31,31,31,0};
 
+char SPLASH_TOP[] = "HARDROCK-50 AMP";
+char SPLASH_BOTTOM[] = "VER 3   FW:1.5B";
 
 
 void LoadChars() {
@@ -42,6 +44,9 @@ void LoadChars() {
 void init() {
 
   int diagCounter, i;
+  short baud;
+  short kxmode;
+  short blver;
   keymode = 2;
   ANSELA = 0b00000011;
   ANSELB = 0;                        // Configure PORTB pins as digital
@@ -92,7 +97,7 @@ void init() {
   IOCB.IOCB7 = 0;
 
   TRISA = 0b00000011;
-  TRISB = 0b00110111;
+  TRISB = 0b01110111;
   TRISC = 0;
   TRISD = 0b11000000;
   TRISE = 0;
@@ -107,11 +112,12 @@ void init() {
 
   LATC = 0x02;
 //  LATB.RB7 = 1;
-//  LATB.RB6 = 1;
+
+  
   Do_LCD_Init();
 
   LoadChars();
-  
+  // Hold keymode to enter diagnostics mode
   if (!PORTB.B2) {
      diagCounter = 0;
      for (i = 1; i<=10; i++) {
@@ -126,11 +132,29 @@ void init() {
         portTest();
      }
   }
+  
+  // Read saved values from eeprom or set defaults
   // Read saved tempmode from 3rd position in eeprom
   tempmode = EEPROM_Read(3);
   // Check to make sure it's a valid tempmode
-  if (tempmode > 1) { tempmode = 0; }
+  if (tempmode > 1 || tempmode < 0) { tempmode = 0; }
   
+  // Read configured baud rate
+  baud = EEPROM_Read(4);
+  if (baud > 3 || baud < 0) { baud = 2; }
+  
+  // Read if kxmode is configured
+  kxmode = EEPROM_Read(5);
+  // Check to make sure it's a valid kxmode
+  if (kxmode > 1 || kxmode < 0) { kxmode = 0; }
+
+  // Read Bootloader Version
+  blver = EEPROM_Read(6);
+  // Check to make sure it's a valid kxmode
+  if (blver > 1 || blver < 0) { blver = 0; }
+
+  
+  // Hold BAND-DOWN to change temperature display between F and C
   if (!PORTB.B1) {
         Lcd_Out(1,1,"Temp Mode: ");
 
@@ -145,12 +169,61 @@ void init() {
         EEPROM_Write(3, tempmode);
         delay_ms(3000);
      }
- 
+  // Enable UART
+
+  // enable UART with standard UART setup
+  if (!PORTB.B0) {
+     TRISB6_bit = 1;
+     UART1_Init(19200);
+     BAUDCON1.DTRXP = 0;
+     flags1.configMode = 1;
+
+     if (blver < 1) {
+        Lcd_Out(1,1,"UpdatingBTLDR");
+        UART1_Write_Text("UpdatingBTLDR\r\n");
+        delay_ms(2000);
+        Start_Bootload();
+        EEPROM_Write(6, 1);
+        Lcd_Out(1,1,"DoneUpdating ");
+        UART1_Write_Text("DoneUpdating\r\n");
+        delay_ms(2000);
+     }
+
+  } else {
+    if (baud == 0) {
+     UART1_Init(4800);
+    } else if (baud == 1) {
+     UART1_Init(9600);
+    } else if (baud == 2) {
+     UART1_Init(19200);
+    } else if (baud == 3) {
+     UART1_Init(38400);
+    }
+    if (kxmode == 1) {
+     BAUDCON1.DTRXP = 1;
+     TRISB6_bit = 0;
+    }
+    flags1.configMode = 0;
+  }
+
   lastB = PORTB;
   INTCON.RBIF = 0;
 /*INTCON.INT0IF = 0;
   INTCON3.INT2IF = 0;
   INTCON3.INT1IF = 0;*/
+  
+
+  Delay_ms(100);
+  UART1_Write_Text("\r\n");            // diagnostic only - Tx not expected to be used
+  UART1_Write_Text(SPLASH_TOP);
+  UART1_Write_Text("\r\n");
+  UART1_Write_Text(SPLASH_BOTTOM);
+  UART1_Write_Text("\r\n");
+  
+  
+  RC1IE_bit = 1;                                         // turn ON interrupt on UART1 receive
+  RC1IF_bit = 0;                                         // Clear interrupt flag
+
   INTCON.PEIE = 1;
   INTCON.GIE = 1;                     //Global Interrupt Enable
   

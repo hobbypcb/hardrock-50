@@ -26,7 +26,13 @@ unsigned short keymode = 0;
 unsigned short band = 10;
 unsigned short tempmode = 0; // 0 - F; 1 = C
 unsigned short temperatureFlag = 0, voltageFlag = 0, eepromUpdateFlag = 0, calcSwrFlag = 0;
+
+char freqStr[6];
 char ms_count;
+Tflag_tag1 flags1 = {0,0,0,0,0,0,0,0};      // init all bits to zero
+char msg[70];
+
+
 
 
 void main(){
@@ -70,6 +76,16 @@ void main(){
         if (keyDispFlag == 1) {
            changeKeyModeLCD();
          }
+      }
+      
+//      if (flags1.newdata) {
+//         UART1_Write(rxbuff[uartPtr]);
+//         flags1.newdata = 0;
+//      }
+      
+      if (flags1.UART_Buffer_full) {
+         UART_grab_buffer();
+         findBand();
       }
 
       if (++ms_count == 10) {

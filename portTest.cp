@@ -14,7 +14,12 @@ sbit LCD_D4_Direction at TRISD3_bit;
 sbit LCD_D5_Direction at TRISD2_bit;
 sbit LCD_D6_Direction at TRISD1_bit;
 sbit LCD_D7_Direction at TRISD0_bit;
-#line 96 "c:/hardrock-50/defs.h"
+#line 100 "c:/hardrock-50/defs.h"
+extern char SPLASH_TOP[];
+extern char SPLASH_BOTTOM[];
+
+
+
 extern unsigned short txState = 0, timer0Flag = 0, bandFlag = 10, bandDispFlag = 0, keyDispFlag = 0;
 extern unsigned short keymode = 0;
 extern unsigned short band = 10;
@@ -26,7 +31,33 @@ extern char VOLT_STR[5];
 extern char TEMP_STR[5];
 extern char PEP_STR[3];
 extern char VSWR_STR[3];
+extern char KEY_STR[2];
 extern unsigned int VOLT, TEMP, FWD_PWR, RFL_PWR;
+extern unsigned int bandUpFlag, bandDownFlag, keyModeFlag, rbDelayFlag, eepromUpdateFlag;
+extern unsigned int _100msCount;
+extern unsigned short temperatureFlag = 0, voltageFlag = 0, calcSwrFlag = 0;
+extern unsigned short tempmode = 0;
+extern char rxbuff[];
+extern char workingString[];
+extern char freqStr[6];
+extern unsigned int uartPtr, BufferLength;
+extern char msg[70];
+
+
+typedef struct flag_tag1{
+
+ unsigned int UART_Buffer_Full:1;
+ unsigned int found:1;
+ unsigned int newdata:1;
+ unsigned int newcmd:1;
+ unsigned int configMode:1;
+ unsigned int Free5:1;
+ unsigned int Free6:1;
+ unsigned int Free7:1;
+
+} Tflag_tag1;
+
+extern Tflag_tag1 flags1;
 
 
 
@@ -42,14 +73,29 @@ void setKeyLcd(char mode);
 void changeBandDisplay(int direction);
 void setBandDelay(void);
 void setBand(void);
-void setTX_OUT(void);
+void setTX_ON(void);
 void setTX_OFF(void);
-void checkRXAnalogs(void);
+void checkTemperature(void);
+void checkVoltage(void);
 void checkTXAnalogs(void);
 void changeKeyModeLCD();
 void changeBandLCD();
 void setPowerMeter(float fwdpwr, float rflpwr);
 void portTest();
+void processTimerFlags();
+void checkButtons();
+void checkTxState();
+void calculateVswr();
+void UART_grab_buffer();
+void findBand();
+void uartRxStatus();
+void uartTxStatus();
+void setBaudRate();
+void setKXMode();
+void setTempLabel();
+void setCallSign();
+char * CopyConst2Ram(char * dest, const char * src);
+void Start_Bootload();
 #line 5 "C:/hardrock-50/portTest.c"
 void portTest() {
  Lcd_Out(1,1,"Diagnostics Run");

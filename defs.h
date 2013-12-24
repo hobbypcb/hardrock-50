@@ -97,6 +97,9 @@ sbit LCD_D7_Direction at TRISD0_bit;
 // Wattmeter correction scale
 #define SCALE 0.87719
 
+extern char SPLASH_TOP[];
+extern char SPLASH_BOTTOM[];
+
 // Global variables
 
 extern unsigned short txState = 0, timer0Flag = 0, bandFlag = 10, bandDispFlag = 0, keyDispFlag = 0;
@@ -110,11 +113,33 @@ extern char VOLT_STR[5];
 extern char TEMP_STR[5];
 extern char PEP_STR[3];
 extern char VSWR_STR[3];
+extern char KEY_STR[2];
 extern unsigned int VOLT, TEMP, FWD_PWR, RFL_PWR;
 extern unsigned int bandUpFlag, bandDownFlag, keyModeFlag, rbDelayFlag, eepromUpdateFlag;
 extern unsigned int _100msCount;
 extern unsigned short temperatureFlag = 0, voltageFlag = 0, calcSwrFlag = 0;
 extern unsigned short tempmode = 0; // 0 - F; 1 = C
+extern char rxbuff[];                                   // 256 byte circular Buffer for storing rx data
+extern char workingString[];
+extern char freqStr[6];
+extern unsigned int uartPtr, BufferLength;
+extern char msg[70]; //declare array set to max size required plus 1 [for terminator] for copying into
+
+
+typedef struct flag_tag1{  // 8 bit flags
+
+        unsigned int UART_Buffer_Full:1; // bit0, used for uart buffer full indication
+        unsigned int found:1; // bit1
+        unsigned int newdata:1; // bit2
+        unsigned int newcmd:1; // bit3
+        unsigned int configMode:1; // bit4
+        unsigned int Free5:1; // bit5
+        unsigned int Free6:1; // bit6
+        unsigned int Free7:1; // bit7
+
+} Tflag_tag1;
+
+extern Tflag_tag1 flags1;
 
 // Function Prototypes
 
@@ -143,3 +168,13 @@ void processTimerFlags();
 void checkButtons();
 void checkTxState();
 void calculateVswr();
+void UART_grab_buffer();
+void findBand();
+void uartRxStatus();
+void uartTxStatus();
+void setBaudRate();
+void setKXMode();
+void setTempLabel();
+void setCallSign();
+char * CopyConst2Ram(char * dest, const char * src);
+void Start_Bootload();

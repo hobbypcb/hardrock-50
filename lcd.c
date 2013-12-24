@@ -18,8 +18,6 @@
 
 #include "defs.h"
 
-char SPLASH_TOP[] = "HARDROCK-50 AMP";
-char SPLASH_BOTTOM[] = "VER 3   FW: 1.4E";
 
 char RX_TOP_BAND[] = " BAND:";
 char RX_TOP_KEY[] = "KEY:";
@@ -57,6 +55,9 @@ void Show_RX() {                  // Function used for text moving
   LCD_Out(2,12,VOLT_STR);
 //  Lcd_Out(2,1,RX_BOTTOM);                 // Write text in second row
 //  i = 1;
+  if (!flags1.configMode) {
+     uartRxStatus();
+  }
 }
 
 void Show_TX() {
@@ -69,6 +70,9 @@ void Show_TX() {
   Lcd_Out(2,5,"0.0 ");
   Lcd_Out(2,5,VSWR_STR);
   Lcd_Out(2,14,PEP_STR);
+  if (!flags1.configMode) {
+     uartTxStatus();
+  }
 
   i = 0;
 }

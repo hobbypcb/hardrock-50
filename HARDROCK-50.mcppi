@@ -16,7 +16,7 @@ Value=2000
 [EEPROM_DEFINITION]
 Value=
 [FILES]
-Count=7
+Count=10
 File0=HARDROCK-50.c
 File1=int.c
 File2=lcd.c
@@ -24,17 +24,26 @@ File3=functions.c
 File4=band.c
 File5=init.c
 File6=portTest.c
+File7=uart.c
+File8=config.c
+File9=bootloader.c
 [BINARIES]
 Count=0
 [IMAGES]
 Count=0
 ActiveImageIndex=-1
 [OPENED_FILES]
-Count=4
+Count=10
 File0=HARDROCK-50.c
 File1=init.c
 File2=lcd.c
 File3=defs.h
+File4=uart.c
+File5=band.c
+File6=functions.c
+File7=config.c
+File8=bootloader.c
+File9=int.c
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]
@@ -55,14 +64,20 @@ File0=defs.h
 [PLDS]
 Count=0
 [Useses]
-Count=6
+Count=11
 File0=Lcd
 File1=Lcd_Constants
 File2=C_String
 File3=Button
 File4=ADC
 File5=Conversions
+File6=EEPROM
+File7=UART
+File8=C_Stdlib
+File9=C_Type
+File10=FLASH
 [EXPANDED NODES]
 Node1=Sources
 Node2=Header Files
-Count=2
+Node3=Output Files
+Count=3
