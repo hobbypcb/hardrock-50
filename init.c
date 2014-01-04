@@ -23,7 +23,7 @@ const char meterTop_CHR[] = {31,31,31,0,0,0,0,0};
 const char meterBottom_CHR[] = {0,0,0,0,31,31,31,0};
 
 char SPLASH_TOP[] = "HARDROCK-50 AMP";
-char SPLASH_BOTTOM[] = "VER 3   FW:1.5B";
+char SPLASH_BOTTOM[] = "VER 3   FW:1.5C";
 
 
 void LoadChars() {
@@ -202,6 +202,7 @@ void init() {
     if (kxmode == 1) {
      BAUDCON1.DTRXP = 1;
      TRISB6_bit = 0;
+     LATB6_bit = 0;
     }
     flags1.configMode = 0;
   }
@@ -211,7 +212,7 @@ void init() {
 /*INTCON.INT0IF = 0;
   INTCON3.INT2IF = 0;
   INTCON3.INT1IF = 0;*/
-  
+
 
   Delay_ms(100);
   UART1_Write_Text("\r\n");            // diagnostic only - Tx not expected to be used
@@ -223,7 +224,7 @@ void init() {
   
   RC1IE_bit = 1;                                         // turn ON interrupt on UART1 receive
   RC1IF_bit = 0;                                         // Clear interrupt flag
-
+  
   INTCON.PEIE = 1;
   INTCON.GIE = 1;                     //Global Interrupt Enable
   

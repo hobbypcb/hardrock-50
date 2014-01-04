@@ -122,7 +122,8 @@ extern unsigned short tempmode = 0; // 0 - F; 1 = C
 extern char rxbuff[];                                   // 256 byte circular Buffer for storing rx data
 extern char workingString[];
 extern char freqStr[6];
-extern unsigned int uartPtr, BufferLength;
+extern unsigned int uartPtr = 0;
+extern unsigned int BufferLength = 0;
 extern char msg[70]; //declare array set to max size required plus 1 [for terminator] for copying into
 
 
