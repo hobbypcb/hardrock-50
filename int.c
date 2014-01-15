@@ -76,11 +76,13 @@ void interrupt() {
         if(rxbuff[uartPtr] == 0x3B)
          {
              flags1.UART_Buffer_Full = 1;
-             BufferLength = uartPtr;
+             uartMsgs++;
+//             readEnd = uartPtr;
          }
         uartPtr++;                     // point to most recent character
 
-        if((uartPtr > 256 - 1)||(flags1.UART_Buffer_Full))uartPtr = 0;
+        if(uartPtr > 127)uartPtr = 0;
+        RC1IF_bit = 0;
       }
       INTCON.RBIE = 1;        // Enable interrupt
 

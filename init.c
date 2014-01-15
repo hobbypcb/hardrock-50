@@ -23,7 +23,7 @@ const char meterTop_CHR[] = {31,31,31,0,0,0,0,0};
 const char meterBottom_CHR[] = {0,0,0,0,31,31,31,0};
 
 char SPLASH_TOP[] = "HARDROCK-50 AMP";
-char SPLASH_BOTTOM[] = "VER 3   FW:1.5C";
+char SPLASH_BOTTOM[] = "VER 3   FW:1.5D";
 
 
 void LoadChars() {
@@ -206,6 +206,9 @@ void init() {
     }
     flags1.configMode = 0;
   }
+  uartPtr = 0;
+  readStart = 0;
+  uartMsgs = 0;
 
   lastB = PORTB;
   INTCON.RBIF = 0;

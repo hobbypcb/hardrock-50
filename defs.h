@@ -123,7 +123,9 @@ extern char rxbuff[];                                   // 256 byte circular Buf
 extern char workingString[];
 extern char freqStr[6];
 extern unsigned int uartPtr = 0;
-extern unsigned int BufferLength = 0;
+extern unsigned int uartMsgs = 0;
+extern unsigned int readStart = 0;
+extern const char crlfsemi[];
 extern char msg[70]; //declare array set to max size required plus 1 [for terminator] for copying into
 
 
