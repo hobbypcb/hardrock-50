@@ -59,6 +59,11 @@ void main(){
   while(1) {                         // Endless loop
 
       if (txState == 1) {
+         // Disable UART1 during TX
+         if (RCSTA1.SPEN == 1) {
+            RCSTA1.SPEN = 0;
+         }
+         
          checkTXAnalogs();
          if (calcSwrFlag) {
             calculateVswr();
@@ -66,6 +71,10 @@ void main(){
 
 
       } else {
+         // Enable UART1 during RX
+         if (RCSTA1.SPEN == 0) {
+            RCSTA1.SPEN = 1;
+         }
         checkButtons();
         if (temperatureFlag) {
            checkTemperature();

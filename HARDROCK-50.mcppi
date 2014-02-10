@@ -6,7 +6,7 @@ Value=0
 [BUILD_TYPE]
 Value=0
 [ACTIVE_TAB]
-Value=init.c
+Value=uart.c
 [USE_EEPROM]
 Value=0
 [USE_HEAP]
@@ -38,12 +38,12 @@ File0=HARDROCK-50.c
 File1=init.c
 File2=lcd.c
 File3=defs.h
-File4=uart.c
-File5=band.c
-File6=functions.c
-File7=config.c
-File8=bootloader.c
-File9=int.c
+File4=band.c
+File5=functions.c
+File6=config.c
+File7=bootloader.c
+File8=int.c
+File9=uart.c
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]
@@ -51,13 +51,15 @@ Count=0
 [OTHER_FILES]
 Count=0
 [SEARCH_PATH]
-Count=3
+Count=4
 Path0=C:\Users\Public\Documents\Mikroelektronika\mikroC PRO for PIC\defs\
 Path1=C:\Users\Public\Documents\Mikroelektronika\mikroC PRO for PIC\uses\P18\
-Path2=C:\hardrock-50\
+Path2=C:\hardrock-50 - Copy\
+Path3=C:\hardrock-50\
 [HEADER_PATH]
-Count=1
+Count=2
 Path0=C:\hardrock-50\
+Path1=C:\hardrock-50 - Copy\
 [HEADERS]
 Count=1
 File0=defs.h

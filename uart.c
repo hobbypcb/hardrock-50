@@ -18,12 +18,14 @@
 
 #include "defs.h"
 
-unsigned int uartPtr, uartPtr2;
-unsigned int uartMsgs, uartMsgs2, readStart, readStart2;
+//unsigned int uartPtr, uartPtr2;
+//unsigned int uartMsgs, uartMsgs2, readStart, readStart2;
+unsigned int uartPtr;
+unsigned int uartMsgs, readStart;
 char rxbuff[128];                                   // 256 byte circular Buffer for storing rx data
 char workingString[128];
-char rxbuff2[128];                                   // 256 byte circular Buffer for storing rx data
-char workingString2[128];
+//char rxbuff2[128];                                   // 256 byte circular Buffer for storing rx data
+//char workingString2[128];
 
 long freqLong = 0;
 unsigned short oldBand;
@@ -59,7 +61,7 @@ void UART_grab_buffer(){
                                                      //   here unless we have a new data stream in the buffer
 }
 
-void UART_grab_buffer2(){
+/*void UART_grab_buffer2(){
 
       int z;
       char lastChar[1];
@@ -84,20 +86,19 @@ void UART_grab_buffer2(){
       uartMsgs2--;
       if (uartMsgs2 < 1) flags1.UART2_Buffer_Full = 0;  // Clear the flag so that we dont come back
                                                      //   here unless we have a new data stream in the buffer
-}
+}*/
 
-
-void findBand(short uart) {
+void findBand() {
      char *found;
      char* workStringPtr;
 //     UART1_Write_Text("Starting findBand\r\n");
 //     UART1_Write_Text(workingString);
 //     UART1_Write_Text("\r\n");
-      if (uart == 1) {
+//      if (uart == 1) {
          workStringPtr = workingString;
-      } else {
-         workStringPtr = workingString2;
-      }
+//      } else {
+//         workStringPtr = workingString2;
+//      }
      found = strstr(workStringPtr,"FA");
      if (found == 0) {
         found = strstr(workStringPtr,"IF");
