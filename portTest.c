@@ -8,16 +8,32 @@ void portTest() {
      delay_ms(10000);
 
      LCD_Out(2,1,"Toggling 6M ON ");
-     _6M_RLY = 1;
+     if (version == 0x46) {
+        REVF_6M_RLY = 1;
+     } else {
+        _6M_RLY = 1;
+     }
      delay_ms(4000);
-     _6M_RLY = 0;
+     if (version == 0x46) {
+        REVF_6M_RLY = 0;
+     } else {
+        _6M_RLY = 0;
+     }
      LCD_Out(2,1,"Toggling 6M OFF");
      delay_ms(2000);
      
      LCD_Out(2,1,"Toggling 10M ON ");
-    _10_12_15M_RLY = 1;
+     if (version == 0x46) {
+        REVF_10_12_15M_RLY = 1;
+     } else {
+        _10_12_15M_RLY = 1;
+     }
      delay_ms(4000);
-     _10_12_15M_RLY = 0;
+     if (version == 0x46) {
+        REVF_10_12_15M_RLY = 0;
+     } else {
+        _10_12_15M_RLY = 0;
+     }
      LCD_Out(2,1,"Toggling 10M OFF");
      delay_ms(2000);
      

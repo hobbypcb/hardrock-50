@@ -69,7 +69,9 @@ sbit LCD_D7_Direction at TRISD0_bit;
 #define _160M  10
 
 // Band Ports
+#define REVF_6M_RLY             LATA.B7
 #define _6M_RLY             LATE.B1
+#define REVF_10_12_15M_RLY      LATA.B6
 #define _10_12_15M_RLY      LATE.B2
 #define _17_20M_RLY         LATA.B3
 #define _30_40M_RLY         LATC.B5
@@ -78,8 +80,12 @@ sbit LCD_D7_Direction at TRISD0_bit;
 // Analog Channels
 #define VOLT_CH             0
 #define TEMP_CH             1
+
 #define FWD_PWR_CH             26
 #define RFL_PWR_CH             27
+
+#define REVF_FWD_PWR_CH             7
+#define REVF_RFL_PWR_CH             6
 
 // DTC PORTS
 #define DTC1                LATA.B2
@@ -97,8 +103,8 @@ sbit LCD_D7_Direction at TRISD0_bit;
 // Wattmeter correction scale
 #define SCALE 0.87719
 
-extern char SPLASH_TOP[];
-extern char SPLASH_BOTTOM[];
+//extern char SPLASH_TOP[];
+//extern char SPLASH_BOTTOM[];
 
 // Global variables
 
@@ -115,18 +121,26 @@ extern char PEP_STR[3];
 extern char VSWR_STR[3];
 extern char KEY_STR[2];
 extern unsigned int VOLT, TEMP, FWD_PWR, RFL_PWR;
-extern unsigned int bandUpFlag, bandDownFlag, keyModeFlag, rbDelayFlag, eepromUpdateFlag;
+extern unsigned int bandUpFlag, bandDownFlag, keyModeFlag, rbDelayFlag;
+extern unsigned short eepromUpdateFlag;
 extern unsigned int _100msCount;
 extern unsigned short temperatureFlag = 0, voltageFlag = 0, calcSwrFlag = 0;
 extern unsigned short tempmode = 0; // 0 - F; 1 = C
-extern char rxbuff[];                                   // 256 byte circular Buffer for storing rx data
+extern char rxbuff[];                                   // 128 byte circular Buffer for storing UART1 rx data
 extern char workingString[];
+extern char rxbuff2[];                                   // 128 byte circular Buffer for storing UART2 rx data
+extern char workingString2[];
+
 extern char freqStr[6];
 extern unsigned int uartPtr = 0;
 extern unsigned int uartMsgs = 0;
 extern unsigned int readStart = 0;
+extern unsigned int uartPtr2 = 0;
+extern unsigned int uartMsgs2 = 0;
+extern unsigned int readStart2 = 0;
 extern const char crlfsemi[];
 extern char msg[70]; //declare array set to max size required plus 1 [for terminator] for copying into
+extern char version;
 
 
 typedef struct flag_tag1{  // 8 bit flags
@@ -136,7 +150,7 @@ typedef struct flag_tag1{  // 8 bit flags
         unsigned int newdata:1; // bit2
         unsigned int newcmd:1; // bit3
         unsigned int configMode:1; // bit4
-        unsigned int Free5:1; // bit5
+        unsigned int UART2_Buffer_Full:1; // bit5
         unsigned int Free6:1; // bit6
         unsigned int Free7:1; // bit7
 
@@ -172,7 +186,8 @@ void checkButtons();
 void checkTxState();
 void calculateVswr();
 void UART_grab_buffer();
-void findBand();
+void UART_grab_buffer2();
+void findBand(short uart);
 void uartRxStatus();
 void uartTxStatus();
 void setBaudRate();
@@ -181,3 +196,4 @@ void setTempLabel();
 void setCallSign();
 char * CopyConst2Ram(char * dest, const char * src);
 void Start_Bootload();
+void getVersion();

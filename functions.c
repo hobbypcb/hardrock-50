@@ -125,8 +125,13 @@ void checkTXAnalogs() {
  //    for (i = 1; i<=10; i++) {
  //        tmp_fwdpwr = tmp_fwdpwr + ADC_Read(FWD_PWR_CH);
  //    }
-     tmp_fwdpwr = ADC_Read(FWD_PWR_CH);
-     tmp_rflpwr = ADC_Read(RFL_PWR_CH);
+     if (version == 0x46) {
+        tmp_fwdpwr = ADC_Read(REVF_FWD_PWR_CH);
+        tmp_rflpwr = ADC_Read(REVF_RFL_PWR_CH);
+     } else {
+        tmp_fwdpwr = ADC_Read(FWD_PWR_CH);
+        tmp_rflpwr = ADC_Read(RFL_PWR_CH);
+     }
      
      if (tmp_fwdpwr > AVE_FWP) AVE_FWP = (AVE_FWP * 2 + tmp_fwdpwr) / 3;
      else AVE_FWP = (AVE_FWP * 14 + tmp_fwdpwr) / 15;

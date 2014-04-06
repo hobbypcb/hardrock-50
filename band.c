@@ -84,8 +84,13 @@ void changeBandLCD() {
 }
 
 void allBandRlyOFF() {
-     _6M_RLY = 0;
-     _10_12_15M_RLY = 0;
+     if (version == 0x46) {
+        REVF_6M_RLY = 0;
+        REVF_10_12_15M_RLY = 0;
+     } else {
+        _6M_RLY = 0;
+        _10_12_15M_RLY = 0;
+     }
      _17_20M_RLY = 0;
      _30_40M_RLY = 0;
      _80M_RLY = 0;
@@ -100,13 +105,21 @@ void setBand() {
 
      switch (band) {
             case _6M:
-                 _6M_RLY = 1;
+                 if (version == 0x46) {
+                   REVF_6M_RLY = 1;
+                 } else {
+                   _6M_RLY = 1;
+                 }
                  break;
 
             case _10M:
             case _12M:
             case _15M:
-                 _10_12_15M_RLY = 1;
+                 if (version == 0x46) {
+                   REVF_10_12_15M_RLY = 1;
+                 } else {
+                   _10_12_15M_RLY = 1;
+                 }
                  DTC1 = 1;
                  break;
 

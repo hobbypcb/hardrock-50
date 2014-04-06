@@ -84,6 +84,22 @@ void interrupt() {
         if(uartPtr > 127)uartPtr = 0;
         RC1IF_bit = 0;
       }
+      else if(RC2IF_bit == 1)
+      {                             // Checks for Receive Interrupt Flag bit
+        rxbuff2[uartPtr2] = UART2_Read();   // Storing read data
+//        flags1.newdata = 1;
+        if(rxbuff2[uartPtr2] == 0x3B)
+         {
+             flags1.UART2_Buffer_Full = 1;
+             uartMsgs2++;
+//             readEnd = uartPtr;
+         }
+        uartPtr2++;                     // point to most recent character
+
+        if(uartPtr2 > 127)uartPtr2 = 0;
+        RC2IF_bit = 0;
+      }
+
       INTCON.RBIE = 1;        // Enable interrupt
 
       

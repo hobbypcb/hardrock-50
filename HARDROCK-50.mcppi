@@ -6,7 +6,7 @@ Value=0
 [BUILD_TYPE]
 Value=0
 [ACTIVE_TAB]
-Value=uart.c
+Value=defs.h
 [USE_EEPROM]
 Value=0
 [USE_HEAP]
@@ -54,8 +54,8 @@ Count=0
 Count=4
 Path0=C:\Users\Public\Documents\Mikroelektronika\mikroC PRO for PIC\defs\
 Path1=C:\Users\Public\Documents\Mikroelektronika\mikroC PRO for PIC\uses\P18\
-Path2=C:\hardrock-50 - Copy\
-Path3=C:\hardrock-50\
+Path2=C:\hardrock-50\
+Path3=C:\hardrock-50 - Copy\
 [HEADER_PATH]
 Count=2
 Path0=C:\hardrock-50\

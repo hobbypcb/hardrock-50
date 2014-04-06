@@ -19,25 +19,26 @@
 #include "defs.h"
 
 
-char RX_TOP_BAND[] = " BAND:";
-char RX_TOP_KEY[] = "KEY:";
+const char RX_TOP_BAND[] = " BAND:";
+const char RX_TOP_KEY[] = "KEY:";
 char BAND_STR[] = "160M";
 char KEY_STR[] = "SB";
-char RX_BOTTOM[] = "104.1      13.8V";
-char TX_BOTTOM[] = "SWR:-.-  PEP:";
+const char TX_BOTTOM[] = "SWR:-.-  PEP:";
 char VOLT_STR[] = "00.0V";
 char TEMP_STR[] = "000";
 char PEP_STR[] = "00W";
 char VSWR_STR[] = "-.-";
 char *res;
+extern const char SPLASH_TOP[];
+extern const char SPLASH_BOTTOM[];
 
 
 void Show_RX() {                  // Function used for text moving
 //  Lcd_Cmd(_LCD_CLEAR);               // Clear display
   memcpy(VSWR_STR, "-.-", 3);
-  Lcd_Out(1,1,RX_TOP_KEY);
+  Lcd_Out(1,1,CopyConst2Ram(msg,RX_TOP_KEY));
   LCD_Out(1,5,KEY_STR);
-  Lcd_Out(1,7,RX_TOP_BAND);                 // Write text in first row
+  Lcd_Out(1,7,CopyConst2Ram(msg,RX_TOP_BAND));                 // Write text in first row
   Lcd_Out(1,13,BAND_STR);
 
   LCD_Out(2,1,TEMP_STR);
@@ -53,7 +54,6 @@ void Show_RX() {                  // Function used for text moving
      if (tempmode == 1) LCD_Out(2,5,"C      ");
   }
   LCD_Out(2,12,VOLT_STR);
-//  Lcd_Out(2,1,RX_BOTTOM);                 // Write text in second row
 //  i = 1;
 //  if (!flags1.configMode) {
 //     uartRxStatus();
@@ -66,7 +66,7 @@ void Show_TX() {
   Lcd_Chr(1, 2, meterBoth);
   Lcd_chr(1, 3, meterTop);
   Lcd_chr(1, 4, meterBottom);*/
-  Lcd_Out(2,1,TX_BOTTOM);                 // Write text in second row
+  Lcd_Out(2,1,CopyConst2Ram(msg,TX_BOTTOM));                 // Write text in second row
   Lcd_Out(2,5,"0.0 ");
   Lcd_Out(2,5,VSWR_STR);
   Lcd_Out(2,14,PEP_STR);
@@ -83,8 +83,8 @@ void Do_LCD_Init() {
   Lcd_Cmd(_LCD_CLEAR);               // Clear display
   Lcd_Cmd(_LCD_CURSOR_OFF);          // Cursor off
 
-  Lcd_Out(1,1,SPLASH_TOP);           // Write Splash Screen in first row
-  Lcd_Out(2,1,SPLASH_BOTTOM);        // Write Splash Screen in second row
+  Lcd_Out(1,1,CopyConst2Ram(msg,SPLASH_TOP));           // Write Splash Screen in first row
+  Lcd_Out(2,1,CopyConst2Ram(msg,SPLASH_BOTTOM));        // Write Splash Screen in second row
 
   Delay_ms(3000);
   Lcd_Cmd(_LCD_CLEAR);               // Clear display

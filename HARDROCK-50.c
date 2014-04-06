@@ -63,7 +63,11 @@ void main(){
          if (RCSTA1.SPEN == 1) {
             RCSTA1.SPEN = 0;
          }
-         
+         // Disable UART2 during TX
+         if (RCSTA2.SPEN == 1) {
+            RCSTA2.SPEN = 0;
+         }
+
          checkTXAnalogs();
          if (calcSwrFlag) {
             calculateVswr();
@@ -71,9 +75,13 @@ void main(){
 
 
       } else {
-         // Enable UART1 during RX
+         // Re-Enable UART1
          if (RCSTA1.SPEN == 0) {
             RCSTA1.SPEN = 1;
+         }
+         // Re-Enable UART2
+         if (RCSTA2.SPEN == 0) {
+            RCSTA2.SPEN = 1;
          }
         checkButtons();
         if (temperatureFlag) {
@@ -86,7 +94,7 @@ void main(){
            changeKeyModeLCD();
          }
       }
-      
+
 //      if (flags1.newdata) {
 //         UART1_Write(rxbuff[uartPtr]);
 //         flags1.newdata = 0;
@@ -94,7 +102,12 @@ void main(){
       
       if (flags1.UART_Buffer_full) {
          UART_grab_buffer();
-         findBand();
+         findBand(1);
+      }
+      
+      if (flags1.UART2_Buffer_full) {
+         UART_grab_buffer2();
+         findBand(2);
       }
 
       if (++ms_count == 10) {

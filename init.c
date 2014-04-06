@@ -22,8 +22,10 @@ const char meterBoth_CHR[] = {31,31,31,0,31,31,31,0};
 const char meterTop_CHR[] = {31,31,31,0,0,0,0,0};
 const char meterBottom_CHR[] = {0,0,0,0,31,31,31,0};
 
-char SPLASH_TOP[] = "HARDROCK-50 AMP";
-char SPLASH_BOTTOM[] = "VER 3   FW:1.5E";
+const char SPLASH_TOP[] = "HARDROCK-50 AMP";
+const char SPLASH_BOTTOM[] = "VER 3   FW:2.0A";
+extern const char crlfsemi[];
+const char hwversion[] = "HW Version: ";
 
 
 void LoadChars() {
@@ -42,12 +44,12 @@ void LoadChars() {
 }
 
 void init() {
-
   int diagCounter, i;
   short baud;
   short kxmode;
   short blver;
   keymode = 2;
+
   ANSELA = 0b00000011;
   ANSELB = 0;                        // Configure PORTB pins as digital
   ANSELC = 0;
@@ -101,6 +103,19 @@ void init() {
   TRISC = 0;
   TRISD = 0b11000000;
   TRISE = 0;
+  
+  getVersion();
+  
+  // REV F Changes to ports
+  if (version == 0x46) {
+    ANSELD = 0;
+    ANSELE = 0b00000110;
+    TRISD = 0;
+    TRISE = 0b00000110;
+  }
+  
+  
+
   
   WPUB = 0b00100000;  // Enable Weak Pull up on COR RB5
   INTCON2.RBPU = 0;
@@ -169,46 +184,78 @@ void init() {
         EEPROM_Write(3, tempmode);
         delay_ms(3000);
      }
+     
+     
+   // Only hack the bootloader if we are REVE or older
+   if (version != 0x46) {
+       if (blver < 1) {
+          Lcd_Out(1,1,"UpdatingBTLDR");
+          delay_ms(2000);
+          Start_Bootload();
+          EEPROM_Write(6, 1);
+          Lcd_Out(1,1,"DoneUpdating ");
+          delay_ms(2000);
+       }
+   }
+   
   // Enable UART
 
-  // enable UART with standard UART setup
+  // enable UART1 with standard UART setup
   if (!PORTB.B0) {
      TRISB6_bit = 1;
      UART1_Init(19200);
      BAUDCON1.DTRXP = 0;
      flags1.configMode = 1;
-
-     if (blver < 1) {
-        Lcd_Out(1,1,"UpdatingBTLDR");
-        UART1_Write_Text("UpdatingBTLDR\r\n");
-        delay_ms(2000);
-        Start_Bootload();
-        EEPROM_Write(6, 1);
-        Lcd_Out(1,1,"DoneUpdating ");
-        UART1_Write_Text("DoneUpdating\r\n");
-        delay_ms(2000);
-     }
-
+     
+  // enable UART1 with custom settings for REVE
   } else {
-    if (baud == 0) {
-     UART1_Init(4800);
-    } else if (baud == 1) {
-     UART1_Init(9600);
-    } else if (baud == 2) {
-     UART1_Init(19200);
-    } else if (baud == 3) {
-     UART1_Init(38400);
-    }
-    if (kxmode == 1) {
-     BAUDCON1.DTRXP = 1;
-     TRISB6_bit = 0;
-     LATB6_bit = 0;
+    if (version != 0x46) {
+        if (baud == 0) {
+         UART1_Init(4800);
+        } else if (baud == 1) {
+         UART1_Init(9600);
+        } else if (baud == 2) {
+         UART1_Init(19200);
+        } else if (baud == 3) {
+         UART1_Init(38400);
+        }
+        
+        if (kxmode == 1) {
+           BAUDCON1.DTRXP = 1;
+           TRISB6_bit = 0;
+           LATB6_bit = 0;
+        }
+    } else {
+    // enable UART1 with standard settings for REVF USB
+       UART1_Init(19200);
+       BAUDCON1.DTRXP = 0;
     }
     flags1.configMode = 0;
   }
+  
+  // enable UART2 for REVF and above
+  if (version == 0x46) {
+        if (baud == 0) {
+         UART2_Init(4800);
+        } else if (baud == 1) {
+         UART2_Init(9600);
+        } else if (baud == 2) {
+         UART2_Init(19200);
+        } else if (baud == 3) {
+         UART2_Init(38400);
+        }
+
+        if (kxmode == 1) {
+           BAUDCON2.DTRXP = 1;
+        }
+  }
+  
   uartPtr = 0;
   readStart = 0;
   uartMsgs = 0;
+  uartPtr2 = 0;
+  readStart2 = 0;
+  uartMsgs2 = 0;
 
   lastB = PORTB;
   INTCON.RBIF = 0;
@@ -218,15 +265,21 @@ void init() {
 
 
   Delay_ms(100);
-  UART1_Write_Text("\r\n");            // diagnostic only - Tx not expected to be used
-  UART1_Write_Text(SPLASH_TOP);
-  UART1_Write_Text("\r\n");
-  UART1_Write_Text(SPLASH_BOTTOM);
-  UART1_Write_Text("\r\n");
-  
+  UART1_Write_Text(CopyConst2Ram(msg,crlfsemi));            // diagnostic only - Tx not expected to be used
+  UART1_Write_Text(CopyConst2Ram(msg,SPLASH_TOP));
+  UART1_Write_Text(CopyConst2Ram(msg,crlfsemi));
+  UART1_Write_Text(CopyConst2Ram(msg,SPLASH_BOTTOM));
+  UART1_Write_Text(CopyConst2Ram(msg,crlfsemi));
+  UART1_Write_Text(CopyConst2Ram(msg,hwversion));
+  UART1_Write(version);
+  UART1_Write_Text(CopyConst2Ram(msg,crlfsemi));
   
   RC1IE_bit = 1;                                         // turn ON interrupt on UART1 receive
   RC1IF_bit = 0;                                         // Clear interrupt flag
+  
+  RC2IE_bit = 1;                                         // turn ON interrupt on UART2 receive
+  RC2IF_bit = 0;                                         // Clear interrupt flag
+
   
   INTCON.PEIE = 1;
   INTCON.GIE = 1;                     //Global Interrupt Enable
