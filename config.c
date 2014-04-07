@@ -26,8 +26,8 @@ const char uartsetto[] = "UART set to ";
 const char onrestart[] = " on next restart";
 extern const char crlfsemi[];
 const char uartinvalid[] = "Invalid UART baud rate cmd proper format: HRBRX; (X = 0-3)";
-const char kxenabled[] = "Elecraft KX recieve mode enabled";
-const char kxdisabled[] = "Elecraft KX recieve mode disabled";
+const char kxenabled[] = "Elecraft KX receive mode enabled";
+const char kxdisabled[] = "Elecraft KX receive mode disabled";
 const char kxinvalid[] = "Invalid KX recieve mode set cmd proper format: HRKX0; or HRKX1;";
 char version = 0x00;
 

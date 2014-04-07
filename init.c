@@ -23,7 +23,7 @@ const char meterTop_CHR[] = {31,31,31,0,0,0,0,0};
 const char meterBottom_CHR[] = {0,0,0,0,31,31,31,0};
 
 const char SPLASH_TOP[] = "HARDROCK-50 AMP";
-const char SPLASH_BOTTOM[] = "VER 3   FW:2.0A";
+const char SPLASH_BOTTOM[] = "VER 3   FW:2.0B";
 extern const char crlfsemi[];
 const char hwversion[] = "HW Version: ";
 
@@ -165,7 +165,7 @@ void init() {
 
   // Read Bootloader Version
   blver = EEPROM_Read(6);
-  // Check to make sure it's a valid kxmode
+  // Check to make sure it's a valid bootloader version.
   if (blver > 1 || blver < 0) { blver = 0; }
 
   

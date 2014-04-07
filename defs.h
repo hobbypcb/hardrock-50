@@ -103,21 +103,21 @@ sbit LCD_D7_Direction at TRISD0_bit;
 // Wattmeter correction scale
 #define SCALE 0.87719
 
-// CheckButtons constants
+// checkButtons constants
 #define BTN_NONE       0x0
-#define BTN_DN         0x1
-#define BTN_UP         0x2
+#define BTN_UP         0x1
+#define BTN_DN         0x2
 #define BTN_DN_UP      0x3
 #define BTN_KY         0x4
-#define BTN_KY_DN      0x5
-#define BTN_KY_UP      0x6
+#define BTN_KY_UP      0x5
+#define BTN_KY_DN      0x6
 #define BTN_ALL_3      0x7
-#define BTN_LONG_DN    0x9
-#define BTN_LONG_UP    0xA
+#define BTN_LONG_UP    0x9
+#define BTN_LONG_DN    0xA
 #define BTN_LONG_DN_UP 0xB
 #define BTN_LONG_KY    0xC
-#define BTN_LONG_KY_DN 0xD
-#define BTN_LONG_KY_UP 0xE
+#define BTN_LONG_KY_UP 0xD
+#define BTN_LONG_KY_DN 0xE
 #define BTN_LONG_ALL_3 0xF
 
 //extern char SPLASH_TOP[];
@@ -177,43 +177,48 @@ extern Tflag_tag1 flags1;
 
 // Function Prototypes
 
-unsigned short mask(unsigned short) ;
-void init(void);
-void outDigit(unsigned short) ;
-void display(void) ;
+char * CopyConst2Ram(char * dest, const char * src);
 void Do_LCD_Init(void) ;
-void updateLCD(void);
-void interrupt(void);
-void changeKeyMode(void);
-void setKeyLcd(char mode);
-void changeBandDisplay(int direction);
-void setBandDelay(void);
-void setBand(void);
-void setTX_ON(void);
-void setTX_OFF(void);
-void checkTemperature(void);
-void checkVoltage(void);
-void checkTXAnalogs(void);
-void changeKeyModeLCD();
-void changeBandLCD();
-void setPowerMeter(float fwdpwr, float rflpwr);
-void portTest();
-void processTimerFlags();
-void processButtons();
-void checkTxState();
-void calculateVswr();
+void Start_Bootload();
 void UART_grab_buffer();
 void UART_grab_buffer2();
+void addMenuArrows();
+void backgroundTasks();
+void calculateVswr();
+void changeBandDisplay(int direction);
+void changeBandLCD();
+void changeKeyMode(void);
+void changeKeyModeLCD();
+unsigned short checkButtons();
+void checkTXAnalogs(void);
+void checkTemperature(void);
+void checkTxState();
+void checkVoltage(void);
+void display(void) ;
+void displayMenu();
 void findBand(short uart);
+void getVersion();
+void init(void);
+void interrupt(void);
+unsigned short mask(unsigned short) ;
+void menuBaudRate();
+void menuKxMode();
+void menuTempMode();
+void outDigit(unsigned short) ;
+void portTest();
+void processButtons();
+void processTimerFlags();
+void removeMenuArrows();
+void setBand(void);
+void setBandDelay(void);
+void setBaudRate();
+void setCallSign();
+void setKXMode();
+void setKeyLcd(char mode);
+void setPowerMeter(float fwdpwr, float rflpwr);
+void setTX_OFF(void);
+void setTX_ON(void);
+void setTempLabel();
 void uartRxStatus();
 void uartTxStatus();
-void setBaudRate();
-void setKXMode();
-void setTempLabel();
-void setCallSign();
-char * CopyConst2Ram(char * dest, const char * src);
-void Start_Bootload();
-void getVersion();
-void idleLoop();
-unsigned short CheckButtons();
-void DisplayMenu();
+void updateLCD(void);
