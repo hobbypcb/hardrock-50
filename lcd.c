@@ -25,11 +25,13 @@ char BAND_STR[] = "160M";
 char KEY_STR[] = "SB";
 const char TX_BOTTOM[] = "SWR:-.-  PEP:";
 char VOLT_STR[] = "00.0V";
-char TEMP_STR[] = "000        ";
+char TEMP_STR[] = "000";
 char PEP_STR[] = "00W";
-const char VSWR_0_0[] = "0.0 ";
 char VSWR_STR[] = "-.-";
 char *res;
+const char VSWR_0_0[] = "0.0 ";
+const char TEMP_STR_PAD[] = "        ";
+
 extern const char SPLASH_TOP[];
 extern const char SPLASH_BOTTOM[];
 
@@ -43,6 +45,7 @@ void Show_RX() {                  // Function used for text moving
   Lcd_Out(1,13,BAND_STR);
 
   LCD_Out(2,1,TEMP_STR);
+  Lcd_Out(2,4,CopyConst2Ram(msg,TEMP_STR_PAD));
   res = strchr(TEMP_STR,'.');
   if (res != 0) {
      Lcd_Chr(2,3,223);

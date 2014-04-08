@@ -133,7 +133,7 @@ extern char i;                      // Loop variable
 extern unsigned short lcdFlag;
 extern char BAND_STR[4];
 extern char VOLT_STR[5];
-extern char TEMP_STR[5];
+extern char TEMP_STR[3];
 extern char PEP_STR[3];
 extern char VSWR_STR[3];
 extern char KEY_STR[2];
