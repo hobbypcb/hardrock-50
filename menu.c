@@ -31,7 +31,7 @@ const char * const msg_menu[] = {
 const char            blank_line[] = "                ";
 extern unsigned short buttons;
 short                 baud, kxmode;
-extern unsigned short tempmode;
+//extern unsigned short tempmode;
 short                 new_baud, new_kxmode;
 unsigned short        new_tempmode;
 
@@ -269,7 +269,7 @@ void menuTempMode() {
    // User changed the temperature mode.  Reset F/C.
    if (new_tempmode != tempmode) {
       tempmode = new_tempmode;
-      EEPROM_Write(4, tempmode);
+      EEPROM_Write(3, tempmode);
    }
 }
 
