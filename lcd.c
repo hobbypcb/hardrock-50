@@ -25,8 +25,9 @@ char BAND_STR[] = "160M";
 char KEY_STR[] = "SB";
 const char TX_BOTTOM[] = "SWR:-.-  PEP:";
 char VOLT_STR[] = "00.0V";
-char TEMP_STR[] = "000";
+char TEMP_STR[] = "000        ";
 char PEP_STR[] = "00W";
+const char VSWR_0_0[] = "0.0 ";
 char VSWR_STR[] = "-.-";
 char *res;
 extern const char SPLASH_TOP[];
@@ -42,16 +43,16 @@ void Show_RX() {                  // Function used for text moving
   Lcd_Out(1,13,BAND_STR);
 
   LCD_Out(2,1,TEMP_STR);
-  res = 0;
   res = strchr(TEMP_STR,'.');
   if (res != 0) {
      Lcd_Chr(2,3,223);
-     if (tempmode == 0) LCD_Out(2,4,"F       ");
-     if (tempmode == 1) LCD_Out(2,4,"C       ");
+     if (tempmode == 0) LCD_Out(2,4,"F");
+     if (tempmode == 1) LCD_Out(2,4,"C");
+
   } else {
      Lcd_Chr(2,4,223);
-     if (tempmode == 0) LCD_Out(2,5,"F      ");
-     if (tempmode == 1) LCD_Out(2,5,"C      ");
+     if (tempmode == 0) LCD_Out(2,5,"F");
+     if (tempmode == 1) LCD_Out(2,5,"C");
   }
   LCD_Out(2,12,VOLT_STR);
 //  i = 1;
@@ -67,7 +68,7 @@ void Show_TX() {
   Lcd_chr(1, 3, meterTop);
   Lcd_chr(1, 4, meterBottom);*/
   Lcd_Out(2,1,CopyConst2Ram(msg,TX_BOTTOM));                 // Write text in second row
-  Lcd_Out(2,5,"0.0 ");
+  Lcd_Out(2,5,CopyConst2Ram(msg,VSWR_0_0 )); 
   Lcd_Out(2,5,VSWR_STR);
   Lcd_Out(2,14,PEP_STR);
 //  if (!flags1.configMode) {
