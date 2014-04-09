@@ -34,12 +34,13 @@ short                 baud, kxmode;
 //extern unsigned short tempmode;
 short                 new_baud, new_kxmode;
 unsigned short        new_tempmode;
+short                 menu_active;
 
 
+// M A I N   M E N U
 void displayMenu() {
-   short keep_looping = 1;
-   short item         = 1;
-   short old_item     = -1;
+   short item     = 1;
+   short old_item = -1;
 
    // Read saved values from EEPROM.
    tempmode = EEPROM_Read(3); // 3rd position = saved tempmode (0=F, 1=C)
@@ -54,7 +55,8 @@ void displayMenu() {
    Lcd_Cmd(_LCD_CLEAR); // Clear display
 
    // Menu loop.
-   while (keep_looping) {
+   menu_active = 1;
+   while (menu_active) {
       buttons = checkButtons();
       switch (buttons) {
          case BTN_UP:
@@ -70,7 +72,7 @@ void displayMenu() {
          case BTN_KY:
             switch (item) {
                case 1:
-                  keep_looping = 0;
+                  menu_active = 0;
                   break;
                case 2:
                   menuBaudRate();
@@ -82,6 +84,9 @@ void displayMenu() {
                   menuTempMode();
                   break;
             } //endswitch
+            break;
+         case BTN_LONG_KY:
+            menu_active = 0;
             break;
          default:
             delay_ms(1);
@@ -113,10 +118,12 @@ void displayMenu() {
          }//endswitch
       } //endif
    } //endwhile
+   lcdFlag = 1;
+   checkTxState();
 }
 
-
-// Display line-2 menu used to select new baud rate.
+// B A U D   R A T E
+// Display menu used to select new baud rate on line-2.
 void menuBaudRate() {
    addMenuArrows();
    // Display current baud rate.
@@ -124,7 +131,7 @@ void menuBaudRate() {
    Lcd_Out(2,4,CopyConst2Ram(msg,msg_baud_rates[new_baud]));
 
    buttons = 0;
-   while (buttons != BTN_KY) {
+   while (buttons != BTN_KY && buttons != BTN_LONG_KY) {
       buttons = checkButtons();
       switch (buttons) {
          case BTN_UP:
@@ -136,6 +143,9 @@ void menuBaudRate() {
             new_baud--;
             if (new_baud < 0) { new_baud = 0; }
             Lcd_Out(2,4,CopyConst2Ram(msg,msg_baud_rates[new_baud]));
+            break;
+         case BTN_LONG_KY:
+            menu_active = 0;
             break;
          default:
             delay_ms(1);
@@ -168,14 +178,25 @@ void menuBaudRate() {
          else if (baud == 3) { UART2_Init(38400);}
       }
 
-      //Re-enable both UARTs.
+      // Clear out UART buffers.
+      uartPtr    = 0;
+      uartMsgs   = 0;
+      readStart  = 0;
+      flags1.UART_Buffer_Full  = 0;
+      uartPtr2   = 0;
+      uartMsgs2  = 0;
+      readStart2 = 0;
+      flags1.UART2_Buffer_Full = 0;
+
+      // Re-enable both UARTs.
       RCSTA1.SPEN = 1;
       RCSTA2.SPEN = 1;
    }
 }
 
 
-// Display line-2 menu used to select new KX mode.
+// K X 3   S E R I A L   M O D E
+// Display menu used to select new KX mode on line-2 .
 void menuKxMode() {
    addMenuArrows();
    // Display current KX mode.
@@ -183,7 +204,7 @@ void menuKxMode() {
    Lcd_Out(2,4,CopyConst2Ram(msg,msg_kx_modes[new_kxmode]));
 
    buttons = 0;
-   while (buttons != BTN_KY) {
+   while (buttons != BTN_KY && buttons != BTN_LONG_KY) {
       buttons = checkButtons();
       switch (buttons) {
          case BTN_UP:
@@ -195,6 +216,9 @@ void menuKxMode() {
             new_kxmode--;
             if (new_kxmode < 0) { new_kxmode = 0; }
             Lcd_Out(2,4,CopyConst2Ram(msg,msg_kx_modes[new_kxmode]));
+            break;
+         case BTN_LONG_KY:
+            menu_active = 0;
             break;
          default:
             delay_ms(1);
@@ -237,8 +261,8 @@ void menuKxMode() {
    }
 }
 
-
-// Display line-2 menu used to select new temperature mode.
+// T E M P E R A T U R E   M O D E
+// Display menu used to select new temperature mode on line-2.
 void menuTempMode() {
    addMenuArrows();
    // Display current temperature mode (F or C).
@@ -246,7 +270,7 @@ void menuTempMode() {
    Lcd_Out(2,4,CopyConst2Ram(msg,msg_temp_modes[new_tempmode]));
 
    buttons = 0;
-   while (buttons != BTN_KY) {
+   while (buttons != BTN_KY && buttons != BTN_LONG_KY) {
       buttons = checkButtons();
       switch (buttons) {
          case BTN_UP:
@@ -257,6 +281,9 @@ void menuTempMode() {
          case BTN_DN:
             if (new_tempmode != 0) { new_tempmode--; }
             Lcd_Out(2,4,CopyConst2Ram(msg,msg_temp_modes[new_tempmode]));
+            break;
+         case BTN_LONG_KY:
+            menu_active = 0;
             break;
          default:
             delay_ms(1);
@@ -270,6 +297,8 @@ void menuTempMode() {
    if (new_tempmode != tempmode) {
       tempmode = new_tempmode;
       EEPROM_Write(3, tempmode);
+      // Force the temperature to be recalculated.
+      checkTemperature(1);
    }
 }
 

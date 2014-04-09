@@ -27,7 +27,6 @@ unsigned int tmp_fwdpwr = 1;
 unsigned int tmp_rflpwr = 1;
 char         tmpString[15];
 unsigned int vswr_len;
-char         tmp_char[8];
 unsigned int last_STATE = 7;
 unsigned int last_atemp = 0, last_avolt = 0;
 unsigned int a_volt = 0, a_temp = 0;
@@ -38,6 +37,10 @@ unsigned short       buttons;
 
 
 void setTX_ON() {
+   
+   // Supress TX if menu is active
+   if(menu_active) return;
+      
    if (bandFlag == 1) {
       setBand();
       bandFlag = 0;
@@ -68,8 +71,7 @@ void setTX_OFF() {
 }
 
 
-void checkTemperature() {
-   int      int_temp;
+void checkTemperature(short force) {
    unsigned int tmp_temp = 0;
    float    temperature;
           
@@ -78,7 +80,7 @@ void checkTemperature() {
 
    temperature = a_temp * 4;
    temperature = temperature / 10;
-   if (a_temp != last_atemp){
+   if (a_temp != last_atemp || force){
       last_atemp = a_temp;
       if (tempmode == 0) {
          temperature = temperature * 1.8;
@@ -96,7 +98,6 @@ void checkTemperature() {
 void checkVoltage() {
    unsigned int tmp_volt = 0;
    float voltage;
-   char  tmp_char[8];
    
    tmp_volt = ADC_Read(VOLT_CH);
 

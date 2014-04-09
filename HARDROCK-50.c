@@ -46,7 +46,7 @@ void main(){
    if (keymode > 2) { keymode = 2; }
    changeKeyMode();
 
-   checkTemperature();
+   checkTemperature(0);
    checkVoltage();
 
    // Main process (endless) loop.
@@ -95,7 +95,7 @@ void backgroundTasks() {
       }
 
       if (temperatureFlag) {
-         checkTemperature();
+         checkTemperature(0);
       }
 
       if (voltageFlag) {

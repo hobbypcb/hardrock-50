@@ -158,6 +158,7 @@ extern unsigned int readStart2 = 0;
 extern const char crlfsemi[];
 extern char msg[70]; //declare array set to max size required plus 1 [for terminator] for copying into
 extern char version;
+extern short menu_active;
 
 
 typedef struct flag_tag1{  // 8 bit flags
@@ -191,7 +192,7 @@ void changeKeyMode(void);
 void changeKeyModeLCD();
 unsigned short checkButtons();
 void checkTXAnalogs(void);
-void checkTemperature(void);
+void checkTemperature(short force);
 void checkTxState();
 void checkVoltage(void);
 void display(void) ;

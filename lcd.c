@@ -30,34 +30,42 @@ char PEP_STR[] = "00W";
 char VSWR_STR[] = "-.-";
 char *res;
 const char VSWR_0_0[] = "0.0 ";
-const char TEMP_STR_PAD[] = "        ";
+const char TEMP_STR_PAD2[] = "  ";
+const char TEMP_STR_PAD6[] = "      ";
 
 extern const char SPLASH_TOP[];
 extern const char SPLASH_BOTTOM[];
 
 
-void Show_RX() {                  // Function used for text moving
-//  Lcd_Cmd(_LCD_CLEAR);               // Clear display
-  memcpy(VSWR_STR, "-.-", 3);
-  Lcd_Out(1,1,CopyConst2Ram(msg,RX_TOP_KEY));
-  LCD_Out(1,5,KEY_STR);
-  Lcd_Out(1,7,CopyConst2Ram(msg,RX_TOP_BAND));                 // Write text in first row
-  Lcd_Out(1,13,BAND_STR);
+void Show_RX() {
+   short pos = 4;
+   
+   // Restore default VSWR.
+   memcpy(VSWR_STR, "-.-", 3);
+   
+   // Line 1: Display key mode.
+   Lcd_Out(1,1,CopyConst2Ram(msg,RX_TOP_KEY));
+   LCD_Out(1,5,KEY_STR);
+   
+   // Line 1: Display band.
+   Lcd_Out(1,7,CopyConst2Ram(msg,RX_TOP_BAND));  // Write text in first row
+   Lcd_Out(1,13,BAND_STR);
+  
+   // Line 2: Display temperature.
+   LCD_Out(2,1,TEMP_STR);
+   if (TEMP_STR[2] == '.') TEMP_STR[2] = 0x00;
+   if (TEMP_STR[1] == '.') TEMP_STR[1] = 0x00;
+   if (TEMP_STR[2] == 0x00) pos--;
+   if (TEMP_STR[1] == 0x00) pos--;
+   Lcd_Chr(2,pos,223);
+   if (tempmode == 0) LCD_Out(2,pos+1,"F");
+   if (tempmode == 1) LCD_Out(2,pos+1,"C");
+   Lcd_Out(2,pos+2,CopyConst2Ram(msg,TEMP_STR_PAD2));
+   Lcd_Out(2,6    ,CopyConst2Ram(msg,TEMP_STR_PAD6));
 
-  LCD_Out(2,1,TEMP_STR);
-  Lcd_Out(2,4,CopyConst2Ram(msg,TEMP_STR_PAD));
-  res = strchr(TEMP_STR,'.');
-  if (res != 0) {
-     Lcd_Chr(2,3,223);
-     if (tempmode == 0) LCD_Out(2,4,"F");
-     if (tempmode == 1) LCD_Out(2,4,"C");
-
-  } else {
-     Lcd_Chr(2,4,223);
-     if (tempmode == 0) LCD_Out(2,5,"F");
-     if (tempmode == 1) LCD_Out(2,5,"C");
-  }
-  LCD_Out(2,12,VOLT_STR);
+   // Line 2: Display voltage.
+   LCD_Out(2,12,VOLT_STR);
+   
 //  i = 1;
 //  if (!flags1.configMode) {
 //     uartRxStatus();
