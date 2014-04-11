@@ -34,7 +34,6 @@ short                 baud, kxmode;
 //extern unsigned short tempmode;
 short                 new_baud, new_kxmode;
 unsigned short        new_tempmode;
-short                 menu_active;
 
 
 // M A I N   M E N U
