@@ -18,11 +18,12 @@ You should have received a copy of the GNU General Public License along with HAR
 
 char i;                              // Loop variable
 unsigned short lcdFlag  = 1;
-unsigned short txState  = 0, lastB = 0, timer0Flag = 0, bandFlag = 1, bandDispFlag = 1, keyDispFlag;
+unsigned short txState  = 0, lastB = 0, timer0Flag = 0, bandFlag = 1, bandDispFlag = 1;
 unsigned short keymode  = 0;
 unsigned short band     = 10;
 unsigned short tempmode = 0; // 0 - F; 1 = C
 unsigned short temperatureFlag = 0, voltageFlag = 0, eepromUpdateFlag = 0, calcSwrFlag = 0;
+short          menu_active = 0;
 
 char freqStr[6];
 char ms_count;
@@ -44,7 +45,8 @@ void main(){
    keymode = EEPROM_Read(2);
    // Check to make sure it is a valid keymode
    if (keymode > 2) { keymode = 2; }
-   changeKeyMode();
+   setKeyMode();
+   checkTxState();
 
    checkTemperature(0);
    checkVoltage();
@@ -100,10 +102,6 @@ void backgroundTasks() {
 
       if (voltageFlag) {
          checkVoltage();
-      }
-
-      if (keyDispFlag == 1) {
-         changeKeyModeLCD();
       }
    }
 

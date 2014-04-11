@@ -125,7 +125,7 @@ sbit LCD_D7_Direction at TRISD0_bit;
 
 // Global variables
 
-extern unsigned short txState = 0, timer0Flag = 0, bandFlag = 10, bandDispFlag = 0, keyDispFlag = 0;
+extern unsigned short txState = 0, timer0Flag = 0, bandFlag = 10, bandDispFlag = 0;
 extern unsigned short keymode = 0;  // 0=SB, 1=PT, 2=CR
 extern unsigned short band = 10;    // see below for values 0-10
 extern unsigned short lastB = 0 ;
@@ -189,7 +189,6 @@ void calculateVswr();
 void changeBandDisplay(int direction);
 void changeBandLCD();
 void changeKeyMode(void);
-void changeKeyModeLCD();
 unsigned short checkButtons();
 void checkTXAnalogs(void);
 void checkTemperature(short force);
@@ -215,7 +214,8 @@ void setBandDelay(void);
 void setBaudRate();
 void setCallSign();
 void setKXMode();
-void setKeyLcd(char mode);
+///////////////void setKeyLcd(char mode);
+void setKeyMode();
 void setPowerMeter(float fwdpwr, float rflpwr);
 void setTX_OFF(void);
 void setTX_ON(void);

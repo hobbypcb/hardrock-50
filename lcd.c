@@ -102,6 +102,7 @@ void Do_LCD_Init() {
   Lcd_Cmd(_LCD_CLEAR);               // Clear display
 }
 
+
 void updateLCD() {
      if (txState == 0) {
         Show_RX();
@@ -111,34 +112,31 @@ void updateLCD() {
      lcdFlag = 0;
 }
 
+
 void changeKeyMode() {
-     EEPROM_Write(2, keymode);
-     keymode = keymode + 1;
-     if (keymode > 2) { keymode = 0; }
-     keyDispFlag = 1;
+   keymode++;
+   if (keymode > 2) { keymode = 0; }
+   EEPROM_Write(2, keymode);
+   setKeyMode();
 }
 
-void changeKeyModeLCD() {
-     switch (keymode) {
-            case SB:
-                 IOCB.IOCB4 = 0;                    //Disable IOC on RB4/5
-                 IOCB.IOCB5 = 0;
-                 memcpy(KEY_STR,"SB",2);
-                 break;
 
-            case PT:
-                 IOCB.IOCB4 = 1;                    //Disable IOC on RB5 enable on RB4
-                 IOCB.IOCB5 = 0;
-                 memcpy(KEY_STR,"PT",2);
-                 break;
-
-            case CR:
-                 IOCB.IOCB4 = 0;                    //Disable IOC on RB4 enable on RB5
-                 IOCB.IOCB5 = 1;
-                 memcpy(KEY_STR,"CR",2);
-                 break;
-
-     }
-     keyDispFlag = 0;
-
+void setKeyMode() {
+   switch (keymode) {
+      case SB:
+         IOCB.IOCB4 = 0;         //Disable IOC on RB4/5
+         IOCB.IOCB5 = 0;
+         memcpy(KEY_STR,"SB",2);
+         break;
+      case PT:
+         IOCB.IOCB4 = 1;         //Disable IOC on RB5, enable on RB4
+         IOCB.IOCB5 = 0;
+         memcpy(KEY_STR,"PT",2);
+         break;
+      case CR:
+         IOCB.IOCB4 = 0;         //Disable IOC on RB4, enable on RB5
+         IOCB.IOCB5 = 1;
+         memcpy(KEY_STR,"CR",2);
+         break;
+   }//endswitch
 }

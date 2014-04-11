@@ -248,12 +248,12 @@ void processButtons() {
    buttons = checkButtons();
    switch (buttons) {
       case BTN_DN:
-         changeBandDisplay(-1);
+         changeBandDisplay(+1);
          bandFlag = 1;
          lcdFlag  = 1;
          break;
       case BTN_UP:
-         changeBandDisplay(+1);
+         changeBandDisplay(-1);
          bandFlag = 1;
          lcdFlag  = 1;
          break;
