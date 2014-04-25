@@ -66,6 +66,12 @@ void setTX_OFF() {
    temperatureFlag = 1;
    voltageFlag     = 1;
    lcdFlag         = 1;
+   AVE_FWP         = 0;
+   AVE_RFP         = 0;
+   PEP_FWP         = 0;
+   tmp_fwdpwr      = 1;
+   tmp_rflpwr      = 1;
+   calcSwrFlag     = 1;
    
    delay_ms(50);
 }
@@ -130,7 +136,13 @@ void checkTXAnalogs() {
       tmp_fwdpwr = ADC_Read(FWD_PWR_CH);
       tmp_rflpwr = ADC_Read(RFL_PWR_CH);
    }
-     
+   
+   if (AVE_FWP == 0) {
+      AVE_FWP = tmp_fwdpwr;
+   }
+   if (AVE_RFP == 0) {
+      AVE_RFP = tmp_rflpwr;
+   }
    if (tmp_fwdpwr > AVE_FWP) {
       AVE_FWP = (AVE_FWP * 2 + tmp_fwdpwr) / 3;
    } else {
