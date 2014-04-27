@@ -23,7 +23,9 @@ const char RX_TOP_BAND[] = " BAND:";
 const char RX_TOP_KEY[] = "KEY:";
 char BAND_STR[] = "160M";
 char KEY_STR[] = "SB";
-const char TX_BOTTOM[] = "SWR:-.-  PEP:";
+//const char TX_BOTTOM[] = "SWR:-.-  PEP:";
+const char TX_BOTTOM_SWR[] = "SWR:";
+const char TX_BOTTOM_PEP[] = "  PEP:";
 char VOLT_STR[] = "00.0V";
 char TEMP_STR[] = "000";
 char PEP_STR[] = "00W";
@@ -78,9 +80,9 @@ void Show_TX() {
   Lcd_Chr(1, 2, meterBoth);
   Lcd_chr(1, 3, meterTop);
   Lcd_chr(1, 4, meterBottom);*/
-  Lcd_Out(2,1,CopyConst2Ram(msg,TX_BOTTOM));                 // Write text in second row
-  Lcd_Out(2,5,CopyConst2Ram(msg,VSWR_0_0 )); 
+  Lcd_Out(2,1,CopyConst2Ram(msg,TX_BOTTOM_SWR));                 // Write text in second row
   Lcd_Out(2,5,VSWR_STR);
+  Lcd_Out(2,8,CopyConst2Ram(msg,TX_BOTTOM_PEP));
   Lcd_Out(2,14,PEP_STR);
 //  if (!flags1.configMode) {
 //     uartTxStatus();
