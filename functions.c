@@ -17,48 +17,66 @@
 // Functions
 
 #include "defs.h"
+#include "built_in.h"
 
-extern char  ms_count;
-unsigned int FWD_PWR, RFL_PWR, AVE_FWP = 0, AVE_RFP = 0, PEP_FWP = 0;
-unsigned int bandUpFlag, bandDownFlag, keyModeFlag, rbDelayFlag;
-unsigned int _10msCount = 0, _100msCount, _1000msCount, _1sCount, PEP_cnt = 0;
-float        fl_fwdpwr, fl_rflpwr, fl_vswr, fl_ratioPlus, fl_ratioMinus, fl_voltFwd, fl_voltRfl;
+extern char  ms_count = 0;
+unsigned int AVE_FWP = 0, AVE_RFP = 0, PEP_FWP = 0, LAST_AVE_FWP = 0, LAST_AVE_RFP = 0;
+unsigned int bandUpFlag = 0, bandDownFlag = 0, keyModeFlag = 0;
+unsigned int _10msCount = 0, PEP_cnt = 0;
+float        fl_fwdpwr  = 0.0, fl_rflpwr    = 0.0, fl_pepPwr     = 0.0;
+float        fl_vswr    = 0.0, fl_ratioPlus = 0.0, fl_ratioMinus = 0.0;
+float        fl_voltFwd = 0.0, fl_voltRfl   = 0.0, fl_voltPep    = 0.0;
 unsigned int tmp_fwdpwr = 1;
 unsigned int tmp_rflpwr = 1;
-char         tmpString[15];
-unsigned int vswr_len;
 unsigned int last_STATE = 7;
 unsigned int last_atemp = 0, last_avolt = 0;
 unsigned int a_volt = 0, a_temp = 0;
-float factor[11] = {1.354014 * SCALE, 1.217817 * SCALE, 1.208466 * SCALE, 1.168001 * SCALE, 1.157946 * SCALE,
-                    1.135676 * SCALE, 1.105976 * SCALE, 1.081982 * SCALE, 1.0      * SCALE, 1.023131 * SCALE, 1.03489  * SCALE};
+char         tmpString[16+1];
+float        factor[11];
+const float  band_factor[11] = {1.354014, 1.217817, 1.208466, 1.168001, 1.157946, 1.135676, 1.105976, 1.081982, 1.0, 1.023131, 1.03489};
+
 const unsigned short num_bits_set[8] = {0, 1, 2, 3, 1, 2, 2, 3};
-unsigned short       buttons;
+unsigned short       buttons = 0;
 
 
-void setTX_ON() {
-   
+void setTxOn() {
+
    // Supress TX if menu is active
    if(menu_active) return;
-      
+
+   // Supress TX if TX_delay is active
+   if(TX_delay_ms != 0) return;
+
+   // Operate band relays.
    if (bandFlag == 1) {
       setBand();
       bandFlag = 0;
       delay_ms(30);
    }
-   TX_OUT  = 1;
-   TX_LED  = 1;
-   PEP_FWP = 0;
-   PEP_cnt = 0;
-   PWR_LED = 0;
-   lcdFlag = 1;
-   txState = 1;
+
+   LAST_AVE_FWP = 0;
+   LAST_AVE_RFP = 0;
+   AVE_FWP      = 0;
+   AVE_RFP      = 0;
+   PEP_FWP      = 0;
    
+   TX_OUT       = 1;
+   TX_LED       = 1;
+   PEP_FWP      = 0;
+   PEP_cnt      = 0;
+   PWR_LED      = 0;
+   lcdFlag      = 1;
+   txState      = 1;
+
    delay_ms(50);
 }
 
 
-void setTX_OFF() {
+void setTxOff() {
+
+   // Supress RX (TX_OFF) if RX_delay is active
+   if(RX_delay_ms != 0) return;
+
    txState         = 0;
    TX_OUT          = 0;
    TX_LED          = 0;
@@ -66,21 +84,25 @@ void setTX_OFF() {
    temperatureFlag = 1;
    voltageFlag     = 1;
    lcdFlag         = 1;
-   AVE_FWP         = 0;
-   AVE_RFP         = 0;
-   PEP_FWP         = 0;
-   tmp_fwdpwr      = 1;
-   tmp_rflpwr      = 1;
-   calcSwrFlag     = 1;
-   
+
    delay_ms(50);
+}
+
+
+void adjustWattMeter(short percent) {
+   short i;
+   float fl_scale = (percent==0) ? SCALE : (1.0 + (float)percent/100) * SCALE;
+
+   for (i=0; i<11; i++) {
+      factor[i] = band_factor[i] * fl_scale;
+   }
 }
 
 
 void checkTemperature(short force) {
    unsigned int tmp_temp = 0;
    float    temperature;
-          
+
    tmp_temp = ADC_READ(TEMP_CH);
    a_temp = (a_temp + tmp_temp) >> 1;
 
@@ -104,14 +126,14 @@ void checkTemperature(short force) {
 void checkVoltage() {
    unsigned int tmp_volt = 0;
    float voltage;
-   
+
    tmp_volt = ADC_Read(VOLT_CH);
 
    a_volt  = (a_volt + tmp_volt) >> 1;
    voltage = a_volt * 4;
    voltage = voltage / 1000;
    voltage = voltage * 4.191;
- 
+
    if (a_volt != last_avolt){
       last_avolt = a_volt;
       FloatToStr(voltage, tmpString);
@@ -128,99 +150,115 @@ void checkTXAnalogs() {
  // for (i = 1; i<=10; i++) {
  //    tmp_fwdpwr = tmp_fwdpwr + ADC_Read(FWD_PWR_CH);
  // }
- 
-   if (version == 0x46) {
+
+   if (REV_F) {
       tmp_fwdpwr = ADC_Read(REVF_FWD_PWR_CH);
       tmp_rflpwr = ADC_Read(REVF_RFL_PWR_CH);
    } else {
       tmp_fwdpwr = ADC_Read(FWD_PWR_CH);
       tmp_rflpwr = ADC_Read(RFL_PWR_CH);
    }
-   
+
+   // Compute average forward power.
    if (AVE_FWP == 0) {
       AVE_FWP = tmp_fwdpwr;
-   }
-   if (AVE_RFP == 0) {
-      AVE_RFP = tmp_rflpwr;
-   }
-   if (tmp_fwdpwr > AVE_FWP) {
+   } else if (tmp_fwdpwr > AVE_FWP) {
       AVE_FWP = (AVE_FWP * 2 + tmp_fwdpwr) / 3;
    } else {
       AVE_FWP = (AVE_FWP * 14 + tmp_fwdpwr) / 15;
    }
-   if (tmp_rflpwr > AVE_RFP) {
+
+   // Compute average reverse power.
+   if (AVE_RFP == 0) {
+      AVE_RFP = tmp_rflpwr;
+   } else if (tmp_rflpwr > AVE_RFP) {
       AVE_RFP = (AVE_RFP * 2 + tmp_rflpwr) / 3;
    } else {
       AVE_RFP = (AVE_RFP * 14 + tmp_rflpwr) / 15;
    }
 
+   // Compute peak envelope power (PEP).
    if (tmp_fwdpwr > PEP_FWP) {
       PEP_cnt    = 0;
       PEP_FWP    = tmp_fwdpwr;
-      fl_fwdpwr  = PEP_FWP * 4;
-      fl_voltFwd = fl_fwdpwr / 1000;
-      fl_fwdpwr  = fl_voltFwd / 2.7;
-      fl_fwdpwr  = fl_fwdpwr * fl_fwdpwr;
-      fl_fwdpwr  = fl_fwdpwr * 65;
-      fl_fwdpwr  *= factor[band];
-      FloatToStr(fl_fwdpwr, tmpString);
+      fl_pepPwr  = PEP_FWP * 4;
+      fl_voltPEP = fl_pepPwr / 1000;
+      fl_pepPwr  = fl_voltPEP / 2.7;
+      fl_pepPwr  = fl_pepPwr * fl_pepPwr;
+      fl_pepPwr  = fl_pepPwr * 65;
+      fl_pepPwr  *= factor[band];
+      FloatToStr(fl_pepPwr, tmpString);
       memcpy(PEP_STR, tmpString, 3);
-      lcdFlag = 1;     
+      lcdFlag = 1;
    } else {
       if (++PEP_cnt > 25) PEP_FWP = 0;
    }
-   if (AVE_FWP != FWD_PWR) {
-      FWD_PWR    = AVE_FWP;
-      fl_fwdpwr  = AVE_FWP * 4;
-      fl_voltFwd = fl_fwdpwr / 1000;
-      fl_fwdpwr  = fl_voltFwd / 2.7;
-      fl_fwdpwr  = fl_fwdpwr * fl_fwdpwr;
-      fl_fwdpwr  = fl_fwdpwr * 65;
-      fl_fwdpwr  *= factor[band];
-      lcdFlag    = 1;     }
+
+   // When average forward power changes, update variables.
+   if (AVE_FWP != LAST_AVE_FWP) {
+      LAST_AVE_FWP = AVE_FWP;
+      fl_fwdpwr    = AVE_FWP * 4;
+      fl_voltFwd   = fl_fwdpwr / 1000;
+      fl_fwdpwr    = fl_voltFwd / 2.7;
+      fl_fwdpwr    = fl_fwdpwr * fl_fwdpwr;
+      fl_fwdpwr    = fl_fwdpwr * 65;
+      fl_fwdpwr    *= factor[band];
+      lcdFlag      = 1;
+   }
 
  //   delay_ms(10);
  //   for (j = 1; j<=10; j++) {
  //      tmp_rflpwr = tmp_rflpwr + ADC_Read(RFL_PWR_CH);
  //   }
 
-   if (AVE_RFP != RFL_PWR) {
-      RFL_PWR    = AVE_RFP;
-      fl_rflpwr  = AVE_RFP * 4;
-      fl_voltRfl = fl_rflpwr / 1000;
-      fl_rflpwr  = fl_voltRfl / 2.7;
-      fl_rflpwr  = fl_rflpwr * fl_rflpwr;
-      fl_rflpwr  = fl_rflpwr * 65;
-      fl_rflpwr  *= factor[band];
-      lcdFlag    = 1;
+   // When average reverse power changes, update variables.
+   if (AVE_RFP != LAST_AVE_RFP) {
+      LAST_AVE_RFP = AVE_RFP;
+      fl_rflpwr    = AVE_RFP * 4;
+      fl_voltRfl   = fl_rflpwr / 1000;
+      fl_rflpwr    = fl_voltRfl / 2.7;
+      fl_rflpwr    = fl_rflpwr * fl_rflpwr;
+      fl_rflpwr    = fl_rflpwr * 65;
+      fl_rflpwr    *= factor[band];
+      lcdFlag      = 1;
    }
+
  //   FloatToStr(fl_rflpwr, tmpString);
  //   memcpy(PEP_STR, tmpString, 2);
  //   lcdFlag = 1;
- 
-   setPowerMeter(fl_fwdpwr, fl_rflpwr);
 
+   setPowerMeter(fl_fwdpwr, fl_rflpwr);
 }
 
+
 void calculateVswr() {
+
    // Calculate VSWR only if fl_fwdpwr > 10
-   if (fl_fwdpwr > 10) {
+   if (fl_fwdpwr > 10.0) {
       fl_vswr = fl_voltRfl / fl_voltFwd;
       fl_ratioPlus  = 1.0 + fl_vswr;
       fl_ratioMinus = 1.0 - fl_vswr;
       fl_vswr = fl_ratioPlus / fl_ratioMinus;
-      
+
       FloatToStr(fl_vswr, tmpString);
-      memcpy(VSWR_STR, tmpString, 3);
-      
-      lcdFlag = 1;
+      // Pad VSWR string to 3 places;
+      tmpString[3] = '\0';
+      if (tmpString[2] == '\0') { tmpString[2] = ' '; };
+      if (tmpString[1] == '\0') { tmpString[1] = ' '; };
+
+      // Update display only when VSWR changes.
+      if (strcmp(VSWR_STR, tmpString)) {
+         memcpy(VSWR_STR, tmpString, 3);
+         lcdFlag     = 1;
+      }
    }
-   calcSwrFlag = 0;
 }
+
 
 void setPowerMeter(float fwdpwr, float rflpwr) {
    int i;
    float iFlt;
+
    if (fwdpwr > 0.0) {
       if (rflpwr > 0.0) {
          Lcd_Chr(1, 1, meterBoth);
@@ -242,19 +280,23 @@ void setPowerMeter(float fwdpwr, float rflpwr) {
    }
 }
 
+
 void processTimerFlags() {
    _10msCount++;
+   // Every 50 msec, do this.
    if (_10msCount == 5) {
-      if (rbDelayFlag == 1) checkTxState();
+      checkTxState();
    }
+   // Every 1/2 sec, do this.
    if (_10msCount == 50) {
-      voltageFlag = 1;
-      calcSwrFlag = 1;
+      voltageFlag     = 1;
       temperatureFlag = 1;
-      lcdFlag    = 1;
-      _10msCount = 0;
+      lcdFlag         = 1;
+
+      _10msCount      = 0;
    }
 }
+
 
 void processButtons() {
    buttons = checkButtons();
@@ -262,12 +304,10 @@ void processButtons() {
       case BTN_DN:
          changeBandDisplay(+1);
          bandFlag = 1;
-         lcdFlag  = 1;
          break;
       case BTN_UP:
          changeBandDisplay(-1);
          bandFlag = 1;
-         lcdFlag  = 1;
          break;
       case BTN_KY:
          changeKeyMode();
@@ -277,7 +317,7 @@ void processButtons() {
          displayMenu();
          break;
    }//endswitch
-}   
+}
 
 
 unsigned short checkButtons() {
@@ -287,7 +327,7 @@ unsigned short checkButtons() {
    buttons = ~PORTB & 0x07;
    state   = buttons;
    cnt     = 0;
-   
+
    // Debounce switches.
    while (state != 0) {
       // Allow multi-press buttons to "pile-on".
@@ -297,14 +337,27 @@ unsigned short checkButtons() {
       delay_ms(1);
       backgroundTasks();
       state = ~PORTB & 0x07;
-      cnt++;
-   }
-   // Indicate long button press.
-   if (cnt > 1000) {
-      buttons = buttons | 0x08;
-   }
 
+      // Indicate long button press.
+      if (cnt++ > 1000) {
+         buttons =  buttons | 0x08;
+         break;
+      }
+   }
+   // Note, we exit early on a long press and the user may still have his finger
+   // on the button.  The calling routine needs to deal with this!
    return buttons;
+}
+
+
+// Wait for all buttons to be released
+void waitButtonRelease() {
+   buttons = ~PORTB & 0x07;
+   while (buttons != 0) {
+      delay_ms(1);
+      backgroundTasks();
+      buttons = ~PORTB & 0x07;
+   }
 }
 
 
@@ -312,31 +365,56 @@ void checkTxState() {
    if (keyMode == PT) {
       if (PORTB.key == 0 && txState == 1) {
          // The PTT line is off, need to turn TX off
-         setTX_OFF();
+         setTxOff();
       }
-      if (PORTB.key == 1 && txState == 0) {
-         // The PTT line is on, we aren't in TX, we need to turn TX on
-         setTX_ON();
+      if (PORTB.key == 1 && txState == 0 && TX_delay_ms == 0) {
+         // The PTT line is on, we aren't in TX or waiting to TX, we need to turn TX on.
+         if(key_delay) {
+            TX_delay_ms = key_delay;   // If key_delay is set, request TX
+         } else {                      // .  in 'TX_delay_ms' milli-seconds,
+            setTxOn();                 // .  otherwise, transmit now.
+         }
       }
    }
    if (keyMode == CR) {
       // Carrier Detect when COR Line is LOW
-      if (PORTB.cor == 1 && txState == 1) {
-         // The COR line is HIGH (OFF), need to turn TX off
-         setTX_OFF();
+      if (PORTB.cor == 1 && txState == 1 && RX_delay_ms == 0) {
+         // The COR line is HIGH (OFF), need to turn TX off.
+         if(cor_htime) {
+            RX_delay_ms = cor_htime;   // If cor_htime is set, request RX
+         } else {                      // .  in 'RX_delay_ms' milli-seconds,
+            setTxOff();                // .  otherwise, end transmit now.
+         }
       }
       if (PORTB.cor == 0 && txState == 0) {
          // The COR line is on (LOW), we aren't in TX, we need to turn TX on
-         setTX_ON();
+         setTxOn();
       }
    }
 }
 
-// copy const to ram string
-char * CopyConst2Ram(char * dest, const char * src){
-  char * d ;
-  d = dest;
-  for(;*dest++ = *src++;)
-    ;
-  return d;
+
+// Copy ROM constant to RAM string.
+char * copyConst2Ram(char * dest, const char * src){
+   char * d = dest;
+   for(;*dest++ = *src++;)
+      ;
+   return d;
+}
+
+
+// Write int to EEPROM.
+void EEPROM_Write_int(unsigned int address, unsigned int num) {
+   EEPROM_Write(address  , Lo(num));
+   EEPROM_Write(address+1, Hi(num));
+  // Note that the EEPROM delay is only needed between write and read functions.
+}
+
+
+// Read int from EEPROM.
+unsigned int EEPROM_Read_int (unsigned int address) {
+   unsigned int num = 0;
+   Lo(num) = EEPROM_Read(address);
+   Hi(num) = EEPROM_Read(address+1);
+   return num;
 }

@@ -16,6 +16,22 @@
 
 // Header file for HARDROCK-50
 
+// EEPROM Map:
+//  1: band
+//  2: keymode
+//  3: tempmode
+//  4: acc_baud (DB9 serial plug)
+//  5: kxmode
+//  6: blver
+//  7: usb_baud
+//  8. meter_adj (+/- 25%)
+//  9. cor_htime (2 bytes)
+// 11. key_delay (2 bytes)
+
+// Macros
+#define REV_E (version != 0x46)
+#define REV_F (version == 0x46)
+
 // Lcd module connections
 sbit LCD_RS at LATD4_bit;
 sbit LCD_EN at LATD5_bit;
@@ -31,8 +47,6 @@ sbit LCD_D5_Direction at TRISD2_bit;
 sbit LCD_D6_Direction at TRISD1_bit;
 sbit LCD_D7_Direction at TRISD0_bit;
 // End Lcd module connections
-
-
 
 // LED connections
 #define PWR_LED   LATC.B1
@@ -67,6 +81,7 @@ sbit LCD_D7_Direction at TRISD0_bit;
 #define _60M  8
 #define _80M  9
 #define _160M 10
+#define _UNK  99
 
 // Band Ports
 #define REVF_6M_RLY        LATA.B7
@@ -125,65 +140,71 @@ sbit LCD_D7_Direction at TRISD0_bit;
 
 // Global variables
 
-extern unsigned short txState = 0, timer0Flag = 0, bandFlag = 10, bandDispFlag = 0;
-extern unsigned short keymode = 0;  // 0=SB, 1=PT, 2=CR
-extern unsigned short band = 10;    // see below for values 0-10
-extern unsigned short lastB = 0 ;
+//EEPROM variables:
+extern unsigned short band;
+extern unsigned short keymode;
+extern unsigned short tempmode;
+extern short          acc_baud;
+extern short          kxmode;
+extern short          blver;
+extern short          usb_baud;
+extern short          meter_adj; // (+/- 25%)
+extern int            cor_htime; // (2 bytes)
+extern int            key_delay; // (2 bytes)
+
+extern unsigned short txState, timer0Flag, bandFlag;
+extern unsigned short lastB;
 extern char i;                      // Loop variable
 extern unsigned short lcdFlag;
-extern char BAND_STR[4];
-extern char VOLT_STR[5];
-extern char TEMP_STR[3];
-extern char PEP_STR[3];
-extern char VSWR_STR[3];
-extern char KEY_STR[2];
-extern unsigned int VOLT, TEMP, FWD_PWR, RFL_PWR;
-extern unsigned int bandUpFlag, bandDownFlag, keyModeFlag, rbDelayFlag; 
+extern char BAND_STR[4+1];
+extern char VOLT_STR[5+1];
+extern char TEMP_STR[3+1];
+extern char PEP_STR[3+1];
+extern char VSWR_STR[3+1];
+extern char KEY_STR[2+1];
+extern unsigned int VOLT, TEMP, LAST_AVE_FWP, RFL_PWR;
+extern unsigned int bandUpFlag, bandDownFlag, keyModeFlag; 
 extern unsigned short eepromUpdateFlag;
-extern unsigned int _100msCount;
-extern unsigned short temperatureFlag = 0, voltageFlag = 0, calcSwrFlag = 0;
-extern unsigned short tempmode = 0; // 0 - F; 1 = C
-extern char rxbuff[];               // 128 byte circular Buffer for storing UART1 rx data
+extern unsigned short temperatureFlag, voltageFlag, calcSwrFlag;
+
+extern char rxbuff[];               // 128 byte circular Buffer for storing UART1 RX data
+extern char rxbuff2[];              // 128 byte circular Buffer for storing UART2 RX data
 extern char workingString[];
-extern char rxbuff2[];              // 128 byte circular Buffer for storing UART2 rx data
 extern char workingString2[];
+extern unsigned int uartPtr;
+extern unsigned int uartPtr2;
+extern unsigned int uartMsgs;
+extern unsigned int uartMsgs2;
+extern unsigned int readStart;
+extern unsigned int readStart2;
 
 extern char freqStr[6];
-extern unsigned int uartPtr    = 0;
-extern unsigned int uartMsgs   = 0;
-extern unsigned int readStart  = 0;
-extern unsigned int uartPtr2   = 0;
-extern unsigned int uartMsgs2  = 0;
-extern unsigned int readStart2 = 0;
 extern const char crlfsemi[];
-extern char msg[70]; //declare array set to max size required plus 1 [for terminator] for copying into
+extern char msg[69+1]; //declare array set to max size required plus 1 [for terminator] for copying into
+extern char tmpString[16+1];
 extern char version;
 extern short menu_active;
+extern int TX_delay_ms;
+extern int RX_delay_ms;
 
-
-typedef struct flag_tag1{  // 8 bit flags
-
-        unsigned int UART_Buffer_Full:1;  // bit0, used for uart buffer full indication
-        unsigned int found:1;             // bit1
-        unsigned int newdata:1;           // bit2
-        unsigned int newcmd:1;            // bit3
-        unsigned int configMode:1;        // bit4
-        unsigned int UART2_Buffer_Full:1; // bit5
-        unsigned int Free6:1;             // bit6
-        unsigned int Free7:1;             // bit7
-
+typedef struct flag_tag1{            // 8 bit flags
+   unsigned int UART_Buffer_Full:1;  // bit0, used for uart buffer full indication
+   unsigned int found:1;             // bit1
+   unsigned int newdata:1;           // bit2
+   unsigned int newcmd:1;            // bit3
+   unsigned int configMode:1;        // bit4
+   unsigned int UART2_Buffer_Full:1; // bit5
+   unsigned int Free6:1;             // bit6
+   unsigned int Free7:1;             // bit7
 } Tflag_tag1;
 
 extern Tflag_tag1 flags1;
 
 // Function Prototypes
 
-char * CopyConst2Ram(char * dest, const char * src);
-void Do_LCD_Init(void) ;
-void Start_Bootload();
-void UART_grab_buffer();
-void UART_grab_buffer2();
+char * copyConst2Ram(char * dest, const char * src);
 void addMenuArrows();
+void adjustWattMeter(short percent);
 void backgroundTasks();
 void calculateVswr();
 void changeBandDisplay(int direction);
@@ -194,32 +215,43 @@ void checkTXAnalogs(void);
 void checkTemperature(short force);
 void checkTxState();
 void checkVoltage(void);
-void display(void) ;
+void display(void);
 void displayMenu();
+void doLcdInit(void);
+unsigned int EEPROM_Read_int (unsigned int address);
+void EEPROM_Write_int(unsigned int address, unsigned int num);
 void findBand(short uart);
 void getVersion();
 void init(void);
 void interrupt(void);
 unsigned short mask(unsigned short) ;
-void menuBaudRate();
+void menuAccBaudRate();
+void menuAdustMeter();
+void menuCorHangTime();
+void menuKeyupDelay();
 void menuKxMode();
 void menuTempMode();
+void menuUsbBaudRate();
 void outDigit(unsigned short) ;
 void portTest();
 void processButtons();
 void processTimerFlags();
 void removeMenuArrows();
 void setBand(void);
-void setBandDelay(void);
 void setBaudRate();
 void setCallSign();
-void setKXMode();
-///////////////void setKeyLcd(char mode);
+void setKxMode();
 void setKeyMode();
 void setPowerMeter(float fwdpwr, float rflpwr);
-void setTX_OFF(void);
-void setTX_ON(void);
+void setTxOff(void);
+void setTxOn(void);
 void setTempLabel();
+void showNumMsec(int num);
+void showPercent(short percent);
+void startBootload();
 void uartRxStatus();
 void uartTxStatus();
+void uartGrabBuffer();
+void uartGrabBuffer2();
 void updateLCD(void);
+void waitButtonRelease();

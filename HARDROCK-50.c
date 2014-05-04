@@ -18,36 +18,36 @@ You should have received a copy of the GNU General Public License along with HAR
 
 char i;                              // Loop variable
 unsigned short lcdFlag  = 1;
-unsigned short txState  = 0, lastB = 0, timer0Flag = 0, bandFlag = 1, bandDispFlag = 1;
-unsigned short keymode  = 0;
-unsigned short band     = 10;
-unsigned short tempmode = 0; // 0 - F; 1 = C
-unsigned short temperatureFlag = 0, voltageFlag = 0, eepromUpdateFlag = 0, calcSwrFlag = 0;
+unsigned short txState  = 0, lastB = 0, timer0Flag = 0, bandFlag = 1;
+//unsigned short temperatureFlag = 0, voltageFlag = 0, eepromUpdateFlag = 0, calcSwrFlag = 0;
+unsigned short temperatureFlag = 0, voltageFlag = 0, eepromUpdateFlag = 0;
 short          menu_active = 0;
-
+unsigned int   TX_delay_ms = 0;
+unsigned int   RX_delay_ms = 0;
 char freqStr[6];
 char ms_count;
 Tflag_tag1 flags1 = {0,0,0,0,0,0,0,0};      // init all bits to zero
 char msg[70];
 
+// EEPROM variables:
+unsigned short band     = 10;
+unsigned short keymode  = 0;
+unsigned short tempmode = 0; // 0 = F; 1 = C
+short          acc_baud;
+short          kxmode;
+short          blver;
+short          usb_baud;
+short          meter_adj; // (+/- 25%)
+int            cor_htime; // (2 bytes)
+int            key_delay; // (2 bytes)
 
 void main(){
    OSCCON = 0b01110110;
 
    init();
-   // Read saved band value from the first position in eeprom
-   band = EEPROM_Read(1);
-   // Check to make sure it is a valid band
-   if (band > 10) { band = 10; }
    changeBandLCD();
-
-   // Read saved keymode value from the 2nd position in eeprom
-   keymode = EEPROM_Read(2);
-   // Check to make sure it is a valid keymode
-   if (keymode > 2) { keymode = 2; }
    setKeyMode();
-   checkTxState();
-
+   adjustWattMeter(meter_adj);
    checkTemperature(0);
    checkVoltage();
 
@@ -67,34 +67,25 @@ void main(){
 
 
 void backgroundTasks() {
-   
+
    // Transmit-only tasks.
    if (txState == 1) {
-      // Disable UART1 during TX.
-      if (RCSTA1.SPEN == 1) {
-         RCSTA1.SPEN = 0;
-      }
-      // Disable UART2 during TX.
-      if (RCSTA2.SPEN == 1) {
-         RCSTA2.SPEN = 0;
-      }
+
+      // Disable UARTS during TX.
+      if (RCSTA1.SPEN == 1) RCSTA1.SPEN = 0;
+      if (RCSTA2.SPEN == 1) RCSTA2.SPEN = 0;
 
       checkTXAnalogs();
-      if (calcSwrFlag) {
-         calculateVswr();
-      }
-      
+      //if (calcSwrFlag) {
+      calculateVswr();
+      //}
+
    // Receive-only tasks.
    } else {
-      // Re-Enable UART1
-      if (RCSTA1.SPEN == 0) {
-         RCSTA1.SPEN = 1;
-      }
 
-      // Re-Enable UART2
-      if (RCSTA2.SPEN == 0) {
-         RCSTA2.SPEN = 1;
-      }
+      // Re-Enable UARTS
+      if (RCSTA1.SPEN == 0) RCSTA1.SPEN = 1;
+      if (RCSTA2.SPEN == 0) RCSTA2.SPEN = 1;
 
       if (temperatureFlag) {
          checkTemperature(0);
@@ -105,20 +96,20 @@ void backgroundTasks() {
       }
    }
 
-   // The remaining tasks occur during receive and transmit. 
-   
+   // The remaining tasks occur during receive and transmit.
+
  // if (flags1.newdata) {
  //    UART1_Write(rxbuff[uartPtr]);
  //    flags1.newdata = 0;
  // }
 
    if (flags1.UART_Buffer_full) {
-      UART_grab_buffer();
+      uartGrabBuffer();
       findBand(1);
    }
 
    if (flags1.UART2_Buffer_full) {
-      UART_grab_buffer2();
+      uartGrabBuffer2();
       findBand(2);
    }
 

@@ -19,23 +19,24 @@
 #include "defs.h"
 
 
-const char RX_TOP_BAND[] = " BAND:";
-const char RX_TOP_KEY[] = "KEY:";
-char BAND_STR[] = "160M";
-char KEY_STR[] = "SB";
-const char TX_BOTTOM[] = "SWR:-.-  PEP:";
-char VOLT_STR[] = "00.0V";
-char TEMP_STR[] = "000";
-char PEP_STR[] = "00W";
-char VSWR_STR[] = "-.-";
-char *res;
-const char VSWR_0_0[] = "0.0 ";
+const char RX_TOP_BAND[]   = " BAND:";
+const char RX_TOP_KEY[]    = "KEY:";
+const char TX_BOTTOM_SWR[] = "SWR:";
+const char TX_BOTTOM_PEP[] = "  PEP:";
+const char VSWR_0_0[]      = "0.0 ";
 const char TEMP_STR_PAD2[] = "  ";
 const char TEMP_STR_PAD6[] = "      ";
 
+char BAND_STR[] = "160M";
+char KEY_STR[]  = "SB";
+char VOLT_STR[] = "00.0V";
+char TEMP_STR[] = "000";
+char PEP_STR[]  = "00W";
+char VSWR_STR[] = "-.-";
+char *res;
+
 extern const char SPLASH_TOP[];
 extern const char SPLASH_BOTTOM[];
-
 
 void Show_RX() {
    short pos = 4;
@@ -44,11 +45,11 @@ void Show_RX() {
    memcpy(VSWR_STR, "-.-", 3);
    
    // Line 1: Display key mode.
-   Lcd_Out(1,1,CopyConst2Ram(msg,RX_TOP_KEY));
+   Lcd_Out(1,1,copyConst2Ram(msg,RX_TOP_KEY));
    LCD_Out(1,5,KEY_STR);
    
    // Line 1: Display band.
-   Lcd_Out(1,7,CopyConst2Ram(msg,RX_TOP_BAND));  // Write text in first row
+   Lcd_Out(1,7,copyConst2Ram(msg,RX_TOP_BAND));  // Write text in first row
    Lcd_Out(1,13,BAND_STR);
   
    // Line 2: Display temperature.
@@ -60,56 +61,54 @@ void Show_RX() {
    Lcd_Chr(2,pos,223);
    if (tempmode == 0) LCD_Out(2,pos+1,"F");
    if (tempmode == 1) LCD_Out(2,pos+1,"C");
-   Lcd_Out(2,pos+2,CopyConst2Ram(msg,TEMP_STR_PAD2));
-   Lcd_Out(2,6    ,CopyConst2Ram(msg,TEMP_STR_PAD6));
+   Lcd_Out(2,pos+2,copyConst2Ram(msg,TEMP_STR_PAD2));
+   Lcd_Out(2,6    ,copyConst2Ram(msg,TEMP_STR_PAD6));
 
    // Line 2: Display voltage.
    LCD_Out(2,12,VOLT_STR);
    
-//  i = 1;
-//  if (!flags1.configMode) {
-//     uartRxStatus();
-//  }
+// i = 1;
+// if (!flags1.configMode) {
+//    uartRxStatus();
+// }
 }
+
 
 void Show_TX() {
-//  Lcd_Cmd(_LCD_CLEAR);               // Clear display
-/*Lcd_Chr(1, 1, meterLeft);
-  Lcd_Chr(1, 2, meterBoth);
-  Lcd_chr(1, 3, meterTop);
-  Lcd_chr(1, 4, meterBottom);*/
-  Lcd_Out(2,1,CopyConst2Ram(msg,TX_BOTTOM));                 // Write text in second row
-  Lcd_Out(2,5,CopyConst2Ram(msg,VSWR_0_0 )); 
-  Lcd_Out(2,5,VSWR_STR);
-  Lcd_Out(2,14,PEP_STR);
-//  if (!flags1.configMode) {
-//     uartTxStatus();
-//  }
+   Lcd_Out(2,1,copyConst2Ram(msg,TX_BOTTOM_SWR));
+   Lcd_Out(2,5,VSWR_STR);
+   Lcd_Out(2,8,copyConst2Ram(msg,TX_BOTTOM_PEP)); 
+   Lcd_Out(2,14,PEP_STR);
 
-  i = 0;
+// if (!flags1.configMode) {
+//    uartTxStatus();
+// }
+
+   i = 0;
 }
 
-void Do_LCD_Init() {
-  Lcd_Init();                        // Initialize Lcd
 
-  Lcd_Cmd(_LCD_CLEAR);               // Clear display
-  Lcd_Cmd(_LCD_CURSOR_OFF);          // Cursor off
-
-  Lcd_Out(1,1,CopyConst2Ram(msg,SPLASH_TOP));           // Write Splash Screen in first row
-  Lcd_Out(2,1,CopyConst2Ram(msg,SPLASH_BOTTOM));        // Write Splash Screen in second row
-
-  Delay_ms(3000);
-  Lcd_Cmd(_LCD_CLEAR);               // Clear display
+void doLcdInit() {
+   Lcd_Init();                        // Initialize Lcd
+   
+   Lcd_Cmd(_LCD_CLEAR);               // Clear display
+   Lcd_Cmd(_LCD_CURSOR_OFF);          // Cursor off
+   
+   Lcd_Out(1,1,copyConst2Ram(msg,SPLASH_TOP));    // Write Splash Screen in first row
+   Lcd_Out(2,1,copyConst2Ram(msg,SPLASH_BOTTOM)); // Write Splash Screen in second row
+   
+   Delay_ms(3000);
+   Lcd_Cmd(_LCD_CLEAR);               // Clear display
 }
 
 
 void updateLCD() {
-     if (txState == 0) {
-        Show_RX();
-     } else {
-        Show_TX();
-     }
-     lcdFlag = 0;
+   if (txState == 0) {
+      Show_RX();
+   } else {
+      Show_TX();
+   }
+   lcdFlag = 0;
 }
 
 
