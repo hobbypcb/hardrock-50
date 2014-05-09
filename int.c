@@ -1,4 +1,4 @@
-/* 
+/*
     Copyright 2012 HobbyPCB LLC
 
     This file is part of HARDROCK-50 Control Firmware
@@ -61,11 +61,13 @@ void interrupt() {
             }
          } else {
             setTxOff();
+            TX_delay_ms = 0;
          }
       }
       if (keyMode == CR) {                // COR Line changed - check value and set flags
          if (snapshotB.cor == 0) {        // Carrier Detect when COR Line is LOW
             setTxOn();
+            RX_delay_ms = 0;
          } else {
             if(cor_htime) {               //
                RX_delay_ms = cor_htime;   // If cor_htime is set, request RX

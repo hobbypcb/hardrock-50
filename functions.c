@@ -1,4 +1,4 @@
-/* 
+/*
     Copyright 2012 HobbyPCB LLC
 
     This file is part of HARDROCK-50 Control Firmware
@@ -366,6 +366,7 @@ void checkTxState() {
       if (PORTB.key == 0 && txState == 1) {
          // The PTT line is off, need to turn TX off
          setTxOff();
+         TX_delay_ms = 0;
       }
       if (PORTB.key == 1 && txState == 0 && TX_delay_ms == 0) {
          // The PTT line is on, we aren't in TX or waiting to TX, we need to turn TX on.
@@ -389,6 +390,7 @@ void checkTxState() {
       if (PORTB.cor == 0 && txState == 0) {
          // The COR line is on (LOW), we aren't in TX, we need to turn TX on
          setTxOn();
+         RX_delay_ms = 0;
       }
    }
 }
