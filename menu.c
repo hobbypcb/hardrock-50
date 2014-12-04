@@ -21,30 +21,49 @@
 const char * const msg_baud_rates[] = {"4800 ", "9600 ", "19200", "38400"};
 const char * const msg_kx_modes[]   = {"NO ", "YES"};
 const char * const msg_temp_modes[] = {"Fahrenheit", "Celsius   "};
+const char * const msg_ATU_modes[] = {"No ATU   ","Bypass   ", "Active   ","Wattmeter","Update FW","Erase Mem"};
 const char * const msg_menu[] = {
    "1. Exit         ",
    "2. ACC Baud Rate",
    "3. USB Baud Rate",
    "4. KX3 Serial   ",
-   "5. Temp. Display",
-   "6. Adj Watt Metr",
-   "7. COR Hang Time",
-   "8. Key-up Delay "
+   "5. FT-817 Mode  ",
+   "6. Temp. Display",
+   "7. Adj Watt Metr",
+   "8. COR Hang Time",
+   "9. Key-up Delay ",
+   "10. ATU Mode    "
 };
+const char msg_FTmode[] = " FT-817 MODE ON ";
 
+const char TBOOT_TOP[]      = "   Update ATU   ";
+const char TBOOT_BOTTOM[]   = "    Firmware    ";
+
+const char TERASE_TOP[]      = " Erasing        ";
+const char TERASE_BOTTOM[]   = " Memories...    ";
+
+const char WATTMTR_TOP[]     = "FW:     PEP:    ";
+const char WATTMTR_BOTTOM[]  = "RF:     SWR:    ";
 
 const char            blank_line[]  = "                ";
 const char            PERCENT_PAD[] = "%   ";
 const char            NUMMSEC_PAD[] = " msec    ";
+const char            COMPLETE[]    = "Complete";
+const char            ERROR[]       = "Error";
 
 extern unsigned short buttons;
 unsigned short        new_tempmode;
 short                 new_acc_baud;
 short                 new_kxmode;
+short                 new_ftmode;
 short                 new_usb_baud;
 short                 new_meter_adj;
 int                   new_cor_htime;
 int                   new_key_delay;
+short                 new_atu_mode;
+char                  PW_STR[5];
+char                  E_F;
+
 
 // M A I N   M E N U
 void displayMenu() {
@@ -61,46 +80,54 @@ void displayMenu() {
    while (menu_active) {
       buttons = checkButtons();
       switch (buttons) {
-         case BTN_UP:
+         case BTN_UP:  //Step forward through menu skipping iten 3 for Rev E
             item++;
-            if (item > 8) { item = 1; }
+            if (item > 10) { item = 1; }
             if (item == 3 && REV_E) { item = 4; }
+            if (item == 5 && REV_E) { item = 6; }
             break;
-         case BTN_DN:
+         case BTN_DN:  //Step backward through menu skipping iten 3 for Rev E
             item--;
-            if (item < 1) { item = 8; }
+            if (item < 1) { item = 10; }
             if (item == 3 && REV_E) { item = 2; }
+            if (item == 5 && REV_E) { item = 4; }
             break;
-         case BTN_KY:
+         case BTN_KY:  //Menu item selected for update
             switch (item) {
-               case 1:
+               case 1:  //exit
                   menu_active = 0;
                   break;
-               case 2:
+               case 2:  //set ACC baudrate
                   menuAccBaudRate();
                   break;
-               case 3:
+               case 3:  //set USB baudrate
                   // REV-F and higher only.
                   menuUsbBaudRate();
                   break;
-               case 4:
+               case 4:  //KX3 data mode
                   menuKxMode();
                   break;
-               case 5:
+               case 5:  //FT-817 mode
+                  menuFtMode();
+                  break;
+               case 6:  //temperature scale
                   menuTempMode();
                   break;
-               case 6:
+               case 7:  //calibrate the wattmeter
                   menuAdustMeter();
                   break;
-               case 7:
+               case 8:  //COR hang time
                   menuCorHangTime();
                   break;
-               case 8:
+               case 9:  //PTT delay
                   menuKeyupDelay();
+                  break;
+               case 10: //Tuner functions
+                  menuATUMode();
                   break;
             } //endswitch
             break;
-         case BTN_LONG_KY:
+         case BTN_LONG_KY: //Holding the KY button for 2 seconds exits the menu
             menu_active = 0;
             break;
          default:
@@ -120,7 +147,8 @@ void displayMenu() {
                break;
             case 2:
                // Display current ACC baud rate.
-               Lcd_Out(2,4,copyConst2Ram(msg,msg_baud_rates[acc_baud]));
+               if (ftmode == 1) Lcd_Out(2,1,copyConst2Ram(msg,msg_FTmode));
+               else Lcd_Out(2,4,copyConst2Ram(msg,msg_baud_rates[acc_baud]));
                break;
             case 3:
                // Display current USB baud rate.
@@ -128,36 +156,227 @@ void displayMenu() {
                break;
             case 4:
                // Display current KX mode.
-               Lcd_Out(2,4,copyConst2Ram(msg,msg_kx_modes[kxmode]));
+               if (ftmode == 1) Lcd_Out(2,1,copyConst2Ram(msg,msg_FTmode));
+               else Lcd_Out(2,4,copyConst2Ram(msg,msg_kx_modes[kxmode]));
                break;
             case 5:
+               // Display current KX mode.
+               Lcd_Out(2,4,copyConst2Ram(msg,msg_kx_modes[ftmode]));
+               break;
+            case 6:
                // Display current temperature mode.
                Lcd_Out(2,4,copyConst2Ram(msg,msg_temp_modes[tempmode]));
                break;
-            case 6:
+            case 7:
                // Display current watt meter calibration.
                showPercent(meter_adj);
                break;
-            case 7:
+            case 8:
                // Display current COR hang time.
                showNumMsec(cor_htime);
                break;
-            case 8:
+            case 9:
                // Display current key-up delay.
                showNumMsec(key_delay);
+               break;
+            case 10:
+               // Display current ATU mode.
+               Lcd_Out(2,4,copyConst2Ram(msg,msg_ATU_modes[atu_mode]));
                break;
          }//endswitch
       } //endif
    } //endwhile
-   updateLCD();
+   Update_LCD();
    waitButtonRelease();
    checkTxState();
 }
+// A T U  M O D E
+// Display menu on line-2 used to select new ATU mode.
+void menuATUMode() {
+   char C1, C2;
+   int i;
+   
+   addMenuArrows();
+   // Display current atu mode.
+   new_atu_mode = atu_mode;
+   Lcd_Out(2,4,copyConst2Ram(msg,msg_ATU_modes[new_atu_mode]));
 
+   buttons = 0;
+   while (buttons != BTN_KY && buttons != BTN_LONG_KY) {
+      buttons = checkButtons();
+      switch (buttons) {
+         case BTN_UP:
+            if (atu_mode != 0){
+               new_atu_mode++;
+               if (new_atu_mode > 5) { new_atu_mode = 5; }
+               Lcd_Out(2,4,copyConst2Ram(msg,msg_ATU_modes[new_atu_mode]));
+            }
+            break;
+         case BTN_DN:
+            if (atu_mode != 0){
+               if (new_atu_mode != 1) { new_atu_mode--; }
+               Lcd_Out(2,4,copyConst2Ram(msg,msg_ATU_modes[new_atu_mode]));
+            }
+            break;
+         case BTN_LONG_KY:
+            menu_active = 0;
+            break;
+         default:
+            delay_ms(1);
+            backgroundTasks();
+            break;
+      }//endswitch
+   }
+   removeMenuArrows();
+
+
+   // ATU mode set to bypass.
+   if (new_atu_mode == 1){
+      atu_mode = new_atu_mode;
+      EEPROM_Write(13, atu_mode);
+      // bypass tuner
+      Tuner_Byp(1);
+   }
+
+   // ATU mode set to active.
+   if (new_atu_mode == 2){
+      atu_mode = new_atu_mode;
+      EEPROM_Write(13, atu_mode);
+      // unbypass tuner
+      Tuner_Byp(0);
+   }
+   // ATU mode set to Wattmeter.
+   if (new_atu_mode == 3){
+      
+      //Bypass the tuner in Wattmeter mode if needed and set band to B11
+      if (atu_mode == 2) Tuner_Byp(1);
+      Tuner_Snd_Char('*');
+      Tuner_Snd_Char('B');
+      Tuner_Snd_Char('1');
+      Tuner_Snd_Char('1');
+      Tuner_Snd_Char(13);
+
+      // display message
+      Lcd_Out(1,1,copyConst2Ram(msg,WATTMTR_TOP));
+      Lcd_Out(2,1,copyConst2Ram(msg,WATTMTR_BOTTOM));
+
+      E_F = 0;
+
+      while (E_F == 0){
+          // get Forward Power:
+          Tuner_Snd_Char('*');
+          Tuner_Snd_Char('P');
+          Tuner_Snd_Char('F');
+          Tuner_Snd_Char(13);
+
+          Get_WM();
+          if (E_F == 0) LCD_Out(1,4,PW_STR);
+
+          // get Reflected Power
+          Tuner_Snd_Char('*');
+          Tuner_Snd_Char('P');
+          Tuner_Snd_Char('R');
+          Tuner_Snd_Char(13);
+
+          Get_WM();
+          if (E_F == 0) LCD_Out(2,4,PW_STR);
+
+          // Get SWR
+          Tuner_Snd_Char('*');
+          Tuner_Snd_Char('W');
+          Tuner_Snd_Char(13);
+
+          Get_WM();
+          if (E_F == 0) LCD_Out(2,13,PW_STR);
+
+          //get Peak Power
+          Tuner_Snd_Char('*');
+          Tuner_Snd_Char('P');
+          Tuner_Snd_Char('P');
+          Tuner_Snd_Char(13);
+          Get_WM();
+          if (E_F == 0) LCD_Out(1,13,PW_STR);
+
+          Delay_ms(300);
+          buttons = checkButtons();
+          if (buttons != BTN_NONE) E_F = 1;
+      }
+      Lcd_Out(1,1,copyConst2Ram(msg,msg_menu[9]));
+      Lcd_Out(2,1,copyConst2Ram(msg,blank_line));
+      Lcd_Out(2,4,copyConst2Ram(msg,msg_ATU_modes[atu_mode]));
+      
+      //Un-Bypass the tuner in Wattmeter mode if needed
+      if (atu_mode == 2) Tuner_Byp(0);
+      changeBandLCD(2);
+      
+      //Clear keying flag
+      INTCON.RBIF = 0;
+      
+  }
+   // ATU mode set to update firmware.
+   if (new_atu_mode == 4){
+      // turn off USARTs
+      RCSTA1 = 0;
+      RCSTA2 = 0;
+      // tristate the pins
+      TRISC.B6 = 1;
+      TRISC.B7 = 1;
+      // tell tuner to wait for bootloader
+      Tuner_Snd_Char('*');
+      Tuner_Snd_Char('U');
+      Tuner_Snd_Char(13);
+      // display message
+      Lcd_Out(1,1,copyConst2Ram(msg,TBOOT_TOP));      
+      Lcd_Out(2,1,copyConst2Ram(msg,TBOOT_BOTTOM));
+      // when ATU comes back it will be bypassed
+      EEPROM_Write(13, 1);
+      //the only way out is a power cycle...
+      while(1);
+   }
+
+   // ATU mode set to erase memories.
+   if (new_atu_mode == 5){
+
+      // tell tuner to erase memories
+      Tuner_Snd_Char('*');
+      Tuner_Snd_Char('E');
+      Tuner_Snd_Char(13);
+
+      // display message
+      Lcd_Out(1,1,copyConst2Ram(msg,TERASE_TOP));
+      Lcd_Out(2,1,copyConst2Ram(msg,TERASE_BOTTOM));
+
+      E_F = 0;
+      i=0;
+      C1 = 255;
+      while ((i++ < 3000) && C1 == 255){C1 = Tuner_Get_Char();}
+      if (C1 == 255) E_F = 1;
+
+      i=0;
+      C2 = 255;
+      while ((i++ < 2) && C2 == 255){C2 = Tuner_Get_Char();}
+      if (C2 == 255) E_F = 1;
+
+      Lcd_Cmd(_LCD_CLEAR); // Clear display
+
+      if (E_F != 0){Lcd_Out(1,5,copyConst2Ram(msg,ERROR));}
+      else {Lcd_Out(1,5,copyConst2Ram(msg,COMPLETE));}
+
+      Delay_ms(1500);
+      Lcd_Out(1,1,copyConst2Ram(msg,msg_menu[9]));
+      Lcd_Out(2,1,copyConst2Ram(msg,blank_line));
+      Lcd_Out(2,4,copyConst2Ram(msg,msg_ATU_modes[atu_mode]));
+
+   }
+}
 
 // A C C   B A U D   R A T E
 // Display menu on line-2 used to select new ACC baud rate.
 void menuAccBaudRate() {
+   if(ftmode == 1){
+        Lcd_Out(2,1,copyConst2Ram(msg,msg_FTmode));
+        return;
+   }
    addMenuArrows();
    // Display current ACC baud rate.
    new_acc_baud = acc_baud;
@@ -301,10 +520,13 @@ void menuUsbBaudRate() {
    }
 }
 
-
 // K X 3   S E R I A L   M O D E
 // Display menu on line-2 used to select new KX mode.
 void menuKxMode() {
+   if(ftmode == 1){
+        Lcd_Out(2,1,copyConst2Ram(msg,msg_FTmode));
+        return;
+   }
    addMenuArrows();
    // Display current KX mode.
    new_kxmode = kxmode;
@@ -334,12 +556,14 @@ void menuKxMode() {
       }//endswitch
    }
    removeMenuArrows();
-
    // User changed the KX3 serial mode.  Reconfigure the two UARTS.
    if (new_kxmode != kxmode) {
       kxmode = new_kxmode;
       EEPROM_Write(5, kxmode);
-
+      setKX3mode();
+   }
+}
+void setKX3mode(void){
       // For REV_E, use UART1 with custom settings.
       if (REV_E) {
 
@@ -358,7 +582,8 @@ void menuKxMode() {
          RCSTA1.SPEN = 1;
 
       // For REV_F and above, use UART2.
-      } else {
+      } 
+      else {
 
          // Disable UART2.
          RCSTA2.SPEN = 0;
@@ -372,7 +597,45 @@ void menuKxMode() {
          //Re-enable UART2.
          RCSTA2.SPEN = 1;
       }
+}
+
+// FT-817 Analog Band Detect  M O D E
+// Display menu on line-2 used to select new FT mode.
+void menuFtMode() {
+   addMenuArrows();
+   // Display current FT mode.
+   new_ftmode = ftmode;
+   Lcd_Out(2,4,copyConst2Ram(msg,msg_kx_modes[new_ftmode]));
+
+   buttons = 0;
+   while (buttons != BTN_KY && buttons != BTN_LONG_KY) {
+      buttons = checkButtons();
+      switch (buttons) {
+         case BTN_UP:
+            new_ftmode++;
+            if (new_ftmode > 1) { new_ftmode = 1; }
+            Lcd_Out(2,4,copyConst2Ram(msg,msg_kx_modes[new_ftmode]));
+            break;
+         case BTN_DN:
+            new_ftmode--;
+            if (new_ftmode < 0) { new_ftmode = 0; }
+            Lcd_Out(2,4,copyConst2Ram(msg,msg_kx_modes[new_ftmode]));
+            break;
+         case BTN_LONG_KY:
+            menu_active = 0;
+            break;
+         default:
+            delay_ms(1);
+            backgroundTasks();
+            break;
+      }//endswitch
    }
+   removeMenuArrows();
+   if (new_ftmode != ftmode) {
+      ftmode = new_ftmode;
+      EEPROM_Write(14, ftmode);
+      setFTmode();
+  }
 }
 
 
@@ -576,4 +839,36 @@ void addMenuArrows() {
 void removeMenuArrows() {
    Lcd_Chr(2,1,' ');
    Lcd_Chr(2,16,' ');
+}
+
+void Get_WM (void){
+int i;
+
+          E_F = 0;
+          i=0;
+          PW_STR[0] = 255;
+          while ((i++ < 30) && PW_STR[0] == 255){PW_STR[0] = Tuner_Get_Char();}
+          if (PW_STR[0] == 255) E_F = 1;
+
+          i=0;
+          PW_STR[1] = 255;
+          while ((i++ < 30) && PW_STR[1] == 255){PW_STR[1] = Tuner_Get_Char();}
+          if (PW_STR[1] == 255) E_F = 1;
+
+          i=0;
+          PW_STR[2] = 255;
+          while ((i++ < 30) && PW_STR[2] == 255){PW_STR[2] = Tuner_Get_Char();}
+          if (PW_STR[2] == 255) E_F = 1;
+
+          i=0;
+          PW_STR[3] = 255;
+          while ((i++ < 30) && PW_STR[3] == 255){PW_STR[3] = Tuner_Get_Char();}
+          if (PW_STR[3] == 255) E_F = 1;
+
+          i=0;
+          PW_STR[4] = 255;
+          while ((i++ < 30) && PW_STR[4] == 255){PW_STR[4] = Tuner_Get_Char();}
+          if (PW_STR[4] == 255) E_F = 1;
+          else PW_STR[4] = 0;
+
 }

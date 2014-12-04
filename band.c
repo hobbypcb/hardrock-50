@@ -22,60 +22,88 @@ void changeBandDisplay(int direction) {
    eepromUpdateFlag = 1;
    if (direction > 0) {
       if (band < 10)  band++;
-      if (band == _60M) { band = _80M; } // Skip over 60M going up
-   } else {
+      if (atu_mode == 0){
+         if (band == _60M) { band = _80M; } // Skip over 60M going up, if there's no tuner
+      }
+   } 
+   else {
       if (band > 0)  band--;
-      if (band == _60M) { band = _40M; } // Skip over 60M going down
+      if (atu_mode == 0){
+         if (band == _60M) { band = _40M; } // Skip over 60M going down, if there's no tuner
+      }
    }
-   changeBandLCD();
+
+   changeBandLCD(1);
 }
 
-void changeBandLCD() {
-   switch (band) {
-      case _6M:
-         memcpy(BAND_STR,"6M  ",4);
-         break;
-         // change interrupt here
-      case _10M:
-         memcpy(BAND_STR,"10M ",4);
-         break;
-         // change interrupt here
-      case _12M:
-         memcpy(BAND_STR,"12M ",4);
-         break;
-         // change interrupt here
-      case _15M:
-         memcpy(BAND_STR,"15M ",4);
-         break;
-         // change interrupt here
-      case _17M:
-         memcpy(BAND_STR,"17M ",4);
-         break;
-         // change interrupt here
-      case _20M:
-         memcpy(BAND_STR,"20M ",4);
-         break;
-         // change interrupt here
-      case _30M:
-         memcpy(BAND_STR,"30M ",4);
-         break;
-         // change interrupt here
-      case _40M:
-         memcpy(BAND_STR,"40M ",4);
-         break;
-         // change interrupt here
-      case _80M:
-         memcpy(BAND_STR,"80M ",4);
-         break;
-         // change interrupt here
-      case _160M:
-         memcpy(BAND_STR,"160M",4);
-         break;
-         // change interrupt here
-      default:
-         memcpy(BAND_STR,"UNK ",4);
-   }//endswitch
-   lcdFlag = 1;
+void changeBandLCD(char snd_ATU) {
+   if (snd_ATU < 2){
+       switch (band) {
+          case _6M:
+             memcpy(BAND_STR,"6M ",3);
+             break;
+             // change interrupt here
+          case _10M:
+             memcpy(BAND_STR,"10M",3);
+             break;
+             // change interrupt here
+          case _12M:
+             memcpy(BAND_STR,"12M",3);
+             break;
+             // change interrupt here
+          case _15M:
+             memcpy(BAND_STR,"15M",3);
+             break;
+             // change interrupt here
+          case _17M:
+             memcpy(BAND_STR,"17M",3);
+             break;
+             // change interrupt here
+          case _20M:
+             memcpy(BAND_STR,"20M",3);
+             break;
+             // change interrupt here
+          case _30M:
+             memcpy(BAND_STR,"30M",3);
+             break;
+             // change interrupt here
+          case _40M:
+             memcpy(BAND_STR,"40M",3);
+             break;
+             // change interrupt here
+          case _60M:
+             if (atu_mode == 0) {memcpy(BAND_STR,"UNK",3);}
+             else {memcpy(BAND_STR,"60M",3);}
+             break;
+             // change interrupt here
+          case _80M:
+             memcpy(BAND_STR,"80M",3);
+             break;
+             // change interrupt here
+          case _160M:
+             memcpy(BAND_STR,"160",3);
+             break;
+             // change interrupt here
+          default:
+             memcpy(BAND_STR,"UNK",3);
+       }//endswitch
+       rx_lcdFlag = 1;
+   }
+//If the ATU is installed, send the band data to the ATU
+   if ((atu_mode != 0) && (snd_ATU == 1)){
+      Tuner_Snd_Char('*');
+      Tuner_Snd_Char('B');
+      if (band < 10) {
+         Tuner_Snd_Char(band + 48);
+      }
+      else {
+         Tuner_Snd_Char('1');
+         if (band == 10) Tuner_Snd_Char('0');
+         else Tuner_Snd_Char('1');
+      }
+      Tuner_Snd_Char(13);
+   }
+
 }
 
 
@@ -138,7 +166,11 @@ void setBand() {
       case _40M:
          _30_40M_RLY = 1;
          break;
-      
+
+      case _60M:
+         _30_40M_RLY = 1;
+         break;
+
       case _80M:
          _80M_RLY = 1;
          break;

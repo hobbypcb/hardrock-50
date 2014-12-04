@@ -27,10 +27,9 @@ char workingString2[128];
 
 long freqLong = 0;
 unsigned short oldBand;
+unsigned int old_tuner_freq;
 const char crlfsemi[] = ";\r\n";
-const char hrcommand[] = "Hardrock Command: ";
-const char detected[] = " detected";
-
+const char HRTM[] = "HRTM";
 
 void uartGrabBuffer(){
    int z = 0;
@@ -80,15 +79,17 @@ void uartGrabBuffer2(){
 void findBand(short uart) {
    char *found;
    char* workStringPtr;
-// UART1_Write_Text("Starting findBand\r\n");
-// UART1_Write_Text(workingString);
-// UART1_Write_Text("\r\n");
-
+   unsigned int C, t_freq;
+   int i, wsl;
+   
    if (uart == 1) {
       workStringPtr = workingString;
    } else {
       workStringPtr = workingString2;
    }
+   // convert working string to uppercase...
+   wsl = strlen(workStringPtr);
+   for (i = 0; i <= wsl; i++) workStringPtr[i] = toupper(workStringPtr[i]);
 
    found = strstr(workStringPtr,"FA");
    if (found == 0) {
@@ -96,107 +97,173 @@ void findBand(short uart) {
    }
    if (found != 0) {
       oldBand = band;
-//    UART1_Write_Text("Found FA\r\n");
+      old_tuner_freq = tuner_freq;
       for (i = 0; i <= 5; i++) {
          freqStr[i] = found[i + 4];
       }
-//    UART1_Write_Text(freqStr);
+
       freqLong = atol(freqStr);
-      if (freqLong > 1800 && freqLong < 2000) {
-//       UART1_Write_Text("Found 160M\r\n");
+      if (freqLong >= 1800 && freqLong <= 2000) {
          band = _160M;
-      } else if (freqLong > 3500 && freqLong < 4000) {
-//         UART1_Write_Text("Found 80M\r\n");
+         tuner_freq = 10 + (freqLong - 1800)/10;
+      } else if (freqLong >= 3500 && freqLong <= 4000) {
            band = _80M;
-      } else if (freqLong > 5325 && freqLong < 5410) {
-//         UART1_Write_Text("Found 60M\r\n");
+           tuner_freq = 40 + (freqLong - 3500)/10;
+      } else if (freqLong >= 5330 && freqLong <= 5410) {
            band = _60M;
-      } else if (freqLong > 7000 && freqLong < 7300) {
-//         UART1_Write_Text("Found 40M\r\n");
+           tuner_freq = 100 + (freqLong - 5330)/10;
+      } else if (freqLong >= 7000 && freqLong <= 7300) {
            band = _40M;
-      } else if (freqLong > 10100 && freqLong < 10150) {
-//         UART1_Write_Text("Found 30M\r\n");
+           tuner_freq = 110 + (freqLong - 7000)/10;
+      } else if (freqLong >= 10100 && freqLong <= 10150) {
            band = _30M;
-      } else if (freqLong > 14000 && freqLong < 14350) {
-//         UART1_Write_Text("Found 20M\r\n");
+           tuner_freq = 150 + (freqLong - 10100)/10;
+      } else if (freqLong >= 14000 && freqLong <= 14350) {
            band = _20M;
-      } else if (freqLong > 18068 && freqLong < 18168) {
-//         UART1_Write_Text("Found 17M\r\n");
+           tuner_freq = 160 + (freqLong - 14000)/10;
+      } else if (freqLong >= 18068 && freqLong <= 18168) {
            band = _17M;
-      } else if (freqLong > 21000 && freqLong < 21450) {
-//         UART1_Write_Text("Found 15M\r\n");
+           tuner_freq = 200 + (freqLong - 18060)/10;
+      } else if (freqLong >= 21000 && freqLong <= 21450) {
            band = _15M;
-      } else if (freqLong > 24890 && freqLong < 24990) {
-//         UART1_Write_Text("Found 12M\r\n");
+           tuner_freq = 220 + (freqLong - 21000)/10;
+      } else if (freqLong >= 24890 && freqLong <= 24990) {
            band = _12M;
-      } else if (freqLong > 28000 && freqLong < 29700) {
-//         UART1_Write_Text("Found 10M\r\n");
+           tuner_freq = 270 + (freqLong - 24890)/10;
+      } else if (freqLong >= 28000 && freqLong <= 29700) {
            band = _10M;
-      } else if (freqLong > 50000 && freqLong < 54000) {
-//         UART1_Write_Text("Found 6M\r\n");
+           tuner_freq = 290 + (freqLong - 28000)/25;
+      } else if (freqLong >= 50000 && freqLong <= 54000) {
            band = _6M;
+           tuner_freq = 360 + (freqLong - 50000)/100;
       } else {
-//         UART1_Write_Text("Outside Band Boundry\r\n");
            band = _UNK;
+           tuner_freq = 999;
       }//endif
-      bandFlag = 1;
-      eepromUpdateFlag = 1;
-      changeBandLCD();
+
+      if (band != oldBand) {
+         bandFlag = 1;
+         eepromUpdateFlag = 1;
+         changeBandLCD(0);
+      }
+
+      if (tuner_freq != old_tuner_freq){
+
+         Tuner_Snd_Char('*');
+         Tuner_Snd_Char('F');
+         C = tuner_freq/100;
+         Tuner_Snd_Char(C + 48);
+         t_freq = tuner_freq - C * 100;
+         C = t_freq/10;
+         Tuner_Snd_Char(C + 48);
+         t_freq = t_freq - C * 10;
+         Tuner_Snd_Char(t_freq + 48);
+         Tuner_Snd_Char(13);
+      }
    }
 
    found = strstr(workStringPtr,"HR");
    if (found != 0) {
+
       flags1.newcmd = 1;
-      UART1_Write_Text(copyConst2Ram(msg,hrcommand));
-      UART1_Write_Text(workingString);
-      UART1_Write_Text(copyConst2Ram(msg,detected));
-      UART1_Write_Text(copyConst2Ram(msg,crlfsemi));
-      found = strstr(workingString,"HRBR");
+
+      //set acc baud rate:
+      found = strstr(workStringPtr,"HRBR");
       if (found != 0 && flags1.newcmd) {
          flags1.newcmd = 0;
-         setBaudRate();
+         setBaudRate(uart, found);
       }
+      //set KX3 mode:
       found = strstr(workStringPtr,"HRKX");
       if (found != 0 && flags1.newcmd) {
          flags1.newcmd = 0;
-         setKxMode();
+         setKxMode(uart, found);
       }
-      found = strstr(workStringPtr,"HRTL");
+      //set band:
+      found = strstr(workStringPtr,"HRBN");
       if (found != 0 && flags1.newcmd) {
          flags1.newcmd = 0;
-         setTempLabel();
+         setBandser(uart, found);
       }
-      found = strstr(workStringPtr,"HRCS");
+      //set mode:
+      found = strstr(workStringPtr,"HRMD");
       if (found != 0 && flags1.newcmd) {
          flags1.newcmd = 0;
-         setCallSign();
+         setModeser(uart, found);
+      }
+      //read temp /set F or C:
+      found = strstr(workStringPtr,"HRTP");
+      if (found != 0 && flags1.newcmd) {
+         flags1.newcmd = 0;
+         setTempser(uart, found);
+      }
+      //read volts:
+      found = strstr(workStringPtr,"HRVT");
+      if (found != 0 && flags1.newcmd) {
+         flags1.newcmd = 0;
+         setVoltser(uart, found);
+      }      
+      //RX Status:
+      found = strstr(workStringPtr,"HRRX");
+      if (found != 0 && flags1.newcmd) {
+         flags1.newcmd = 0;
+         if (found[4] == ';') uartRxStatus(uart);
+      }
+      //ATU mode:
+      found = strstr(workStringPtr,"HRAT");
+      if (found != 0 && flags1.newcmd) {
+         flags1.newcmd = 0;
+         setATUser(uart, found);
+      }
+      //Tuner pass-thru:
+      found = strstr(workStringPtr,"HRTM");
+      if (found != 0 && flags1.newcmd) {
+         UART_send(uart, copyConst2Ram(msg,HRTM));
+         flags1.newcmd = 0;
+         Tuner_Snd_Char('*');
+         i = 4;
+         while (found[i] != ';') Tuner_Snd_Char(found[i++]);
+         Tuner_Snd_Char(13);
+         i = 0;
+         msg[0] = Tuner_Get_Char();
+         if (msg[0] != 255){
+            while (msg[i] != 13){
+                  msg[++i] = Tuner_Get_Char();
+            }
+            msg[i] = 0;
+            UART_send(uart, msg);
+         }
+         UART_send(uart, copyConst2Ram(msg,crlfsemi));
       }
    }
+}
+
+void UART_send(char uart,char *send_str){
+     if (uart == 1) UART1_Write_Text(send_str);
+     else UART2_Write_Text(send_str);
 }
 
 void sendComma() {
    UART1_Write_Text(",");
 }
 
-void uartRxStatus() {
-   UART1_Write_Text("RX");
-   sendComma();
-   UART1_Write_Text(KEY_STR);
-   sendComma();
+void uartRxStatus(char uart) {
+   char RX[] = "RX";
+   char TMPC[] = "C";
+   char TMPF[] = "F";
+   char comma[] = ",";
+   
+   UART_send(uart, RX);
+   UART_send(uart, comma);
+   UART_send(uart, KEY_STR);
+   UART_send(uart, comma);
    rtrim(BAND_STR);
-   UART1_Write_Text(BAND_STR);
-   sendComma();
-   UART1_Write_Text(TEMP_STR);
-   sendComma();
-   UART1_Write_Text(VOLT_STR);
-   UART1_Write_Text(copyConst2Ram(msg,crlfsemi));
-}
-
-void uartTxStatus() {
-   UART1_Write_Text("TX");
-   sendComma();
-   UART1_Write_Text(VSWR_STR);
-   sendComma();
-   UART1_Write_Text(PEP_STR);
-   UART1_Write_Text(copyConst2Ram(msg,crlfsemi));
+   UART_send(uart, BAND_STR);
+   UART_send(uart, comma);
+   UART_send(uart, TEMP_STR);
+   if (tempmode == 0) UART_send(uart,TMPF);
+   else UART_send(uart,TMPC);
+   UART_send(uart, comma);
+   UART_send(uart, VOLT_STR);
+   UART_send(uart, copyConst2Ram(msg,crlfsemi));
 }

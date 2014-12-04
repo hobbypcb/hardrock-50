@@ -20,9 +20,8 @@
 #include "built_in.h"
 
 extern char  ms_count = 0;
-unsigned int AVE_FWP = 0, AVE_RFP = 0, PEP_FWP = 0, LAST_AVE_FWP = 0, LAST_AVE_RFP = 0;
 unsigned int bandUpFlag = 0, bandDownFlag = 0, keyModeFlag = 0;
-unsigned int _10msCount = 0, PEP_cnt = 0;
+unsigned int _10msCount = 0, _50msCount = 0, PEP_cnt = 0;
 float        fl_fwdpwr  = 0.0, fl_rflpwr    = 0.0, fl_pepPwr     = 0.0;
 float        fl_vswr    = 0.0, fl_ratioPlus = 0.0, fl_ratioMinus = 0.0;
 float        fl_voltFwd = 0.0, fl_voltRfl   = 0.0, fl_voltPep    = 0.0;
@@ -37,40 +36,37 @@ const float  band_factor[11] = {1.354014, 1.217817, 1.208466, 1.168001, 1.157946
 
 const unsigned short num_bits_set[8] = {0, 1, 2, 3, 1, 2, 2, 3};
 unsigned short       buttons = 0;
-
+const char ATU_TOP[]   = "   Tuning ...   ";
+const char ATU_BYP[]   = " Tuner Bypassed ";
+const char ATU_ACT[]   = "  Tuner Active  ";
+const char ATU_S[]     = "   Tuned OK     ";
+const char ATU_F[]     = "  Tune Failed   ";
+const char ATU_L[]     = " Power too low  ";
+const char ATU_A[]     = "  Tune Aborted  ";
+const char ATU_T[]     = "   Timed Out    ";
 
 void setTxOn() {
 
    // Supress TX if menu is active
-   if(menu_active) return;
+   if (menu_active) return;
 
    // Supress TX if TX_delay is active
-   if(TX_delay_ms != 0) return;
+   if (TX_delay_ms != 0) return;
 
    // Operate band relays.
    if (bandFlag == 1) {
       setBand();
       bandFlag = 0;
-      delay_ms(30);
+      delay_ms(25);
    }
 
-   LAST_AVE_FWP = 0;
-   LAST_AVE_RFP = 0;
-   AVE_FWP      = 0;
-   AVE_RFP      = 0;
-   PEP_FWP      = 0;
-   
-   TX_OUT       = 1;
+   if ((keymode != QR) && (band != _UNK)) TX_OUT = 1;
    TX_LED       = 1;
-   PEP_FWP      = 0;
-   PEP_cnt      = 0;
    PWR_LED      = 0;
-   lcdFlag      = 1;
+   tx_lcdFlag   = 1;
    txState      = 1;
-
-   delay_ms(50);
+   delay_ms(40);
 }
-
 
 void setTxOff() {
 
@@ -81,13 +77,25 @@ void setTxOff() {
    TX_OUT          = 0;
    TX_LED          = 0;
    PWR_LED         = 1;
-   temperatureFlag = 1;
-   voltageFlag     = 1;
-   lcdFlag         = 1;
+//   lcdFlag         = 1;
+   _50msCount      = 0;
+   _10msCount      = 0;
 
-   delay_ms(50);
+   delay_ms(40);
 }
-
+void SetFTmode(){
+     if (REV_E) return;   //Rev E doen't support FT-817 Mode
+     if (FTmode == 1){
+        RCSTA2.SPEN = 0;  //disable ACC serial port.
+        TRISD.B7 = 1;     //make RD7 an input.
+        ANSELD.B7 = 1;    //make RD7 an analog pin.
+     }
+     else{
+        ANSELD.B7 = 0;    //make RD7 a digital pin.
+        TRISD.B7 = 1;     //make RD7 an input.
+        RCSTA2.SPEN = 1;  //enable ACC serial port.
+    }
+}
 
 void adjustWattMeter(short percent) {
    short i;
@@ -116,7 +124,7 @@ void checkTemperature(short force) {
       }
       FloatToStr(temperature, tmpString);
       memcpy(TEMP_STR, tmpString, 3);
-      lcdFlag = 1;
+      rx_lcdFlag = 1;
     }
 
    temperatureFlag = 0;
@@ -138,18 +146,33 @@ void checkVoltage() {
       last_avolt = a_volt;
       FloatToStr(voltage, tmpString);
       memcpy(VOLT_STR, tmpString, 4);
-      lcdFlag     = 1;
+      rx_lcdFlag     = 1;
       voltageFlag = 0;
    }
 }
-
+void readFT817(void){
+     unsigned int FTdata;
+     
+     FTdata = ADC_Read(FT817);
+     
+     if (FTdata < 125) band = _160M;
+     else if (FTdata <  208) band = _80M;
+     else if (FTdata <  291) band = _40M;
+     else if (FTdata <  375) band = _30M;
+     else if (FTdata <  458) band = _20M;
+     else if (FTdata <  541) band = _17M;
+     else if (FTdata <  625) band = _15M;
+     else if (FTdata <  708) band = _12M;
+     else if (FTdata <  791) band = _10M;
+     else if (FTdata <  875) band = _6M;
+     else band = _UNK;
+     
+     bandFlag = 1;
+     eepromUpdateFlag = 1;
+     changeBandLCD(1);
+}
 
 void checkTXAnalogs() {
- // int i, j;
-
- // for (i = 1; i<=10; i++) {
- //    tmp_fwdpwr = tmp_fwdpwr + ADC_Read(FWD_PWR_CH);
- // }
 
    if (REV_F) {
       tmp_fwdpwr = ADC_Read(REVF_FWD_PWR_CH);
@@ -189,7 +212,7 @@ void checkTXAnalogs() {
       fl_pepPwr  *= factor[band];
       FloatToStr(fl_pepPwr, tmpString);
       memcpy(PEP_STR, tmpString, 3);
-      lcdFlag = 1;
+      tx_lcdFlag = 1;
    } else {
       if (++PEP_cnt > 25) PEP_FWP = 0;
    }
@@ -203,13 +226,8 @@ void checkTXAnalogs() {
       fl_fwdpwr    = fl_fwdpwr * fl_fwdpwr;
       fl_fwdpwr    = fl_fwdpwr * 65;
       fl_fwdpwr    *= factor[band];
-      lcdFlag      = 1;
+      tx_lcdFlag      = 1;
    }
-
- //   delay_ms(10);
- //   for (j = 1; j<=10; j++) {
- //      tmp_rflpwr = tmp_rflpwr + ADC_Read(RFL_PWR_CH);
- //   }
 
    // When average reverse power changes, update variables.
    if (AVE_RFP != LAST_AVE_RFP) {
@@ -220,7 +238,7 @@ void checkTXAnalogs() {
       fl_rflpwr    = fl_rflpwr * fl_rflpwr;
       fl_rflpwr    = fl_rflpwr * 65;
       fl_rflpwr    *= factor[band];
-      lcdFlag      = 1;
+      tx_lcdFlag      = 1;
    }
 
  //   FloatToStr(fl_rflpwr, tmpString);
@@ -249,54 +267,55 @@ void calculateVswr() {
       // Update display only when VSWR changes.
       if (strcmp(VSWR_STR, tmpString)) {
          memcpy(VSWR_STR, tmpString, 3);
-         lcdFlag     = 1;
+         tx_lcdFlag     = 1;
       }
    }
 }
 
 
 void setPowerMeter(float fwdpwr, float rflpwr) {
-   int i;
-   float iFlt;
-
-   if (fwdpwr > 0.0) {
-      if (rflpwr > 0.0) {
-         Lcd_Chr(1, 1, meterBoth);
-      } else {
-         Lcd_Chr(1, 1, meterTop);
+   unsigned char f, r;
+   f = (int)(fwdpwr / 3);
+   r = (int)(rflpwr / 3);
+   Draw_BG(f,r);
+}
+void Draw_BG(unsigned char f, unsigned char r){
+   unsigned char i;
+   
+   for (i = 1; i <= 16; i++)  {
+      if (f >= i){
+         if (r >= i) {
+           Lcd_Chr(1, i, meterBoth);
+         }
+         else {
+            Lcd_Chr(1, i, meterTop);
+         }
       }
-   }
-   for (i = 2; i<=16; i++) {
-       iFlt = i * 3.125;
-       if (fwdpwr > iFlt) {
-          if (rflpwr > iFlt) {
-             Lcd_Chr(1, i, meterBoth);
-          } else {
-             Lcd_Chr(1, i, meterTop);
-          }
-       } else {
-          Lcd_Chr(1, i, 32);
-       }
+      else {
+         Lcd_Chr(1, i, 32);
+      }
    }
 }
 
-
 void processTimerFlags() {
+   _50msCount++;
    _10msCount++;
    // Every 50 msec, do this.
    if (_10msCount == 5) {
       checkTxState();
+      _10msCount = 0;
    }
    // Every 1/2 sec, do this.
-   if (_10msCount == 50) {
+   if (_50msCount == 50) {
       voltageFlag     = 1;
       temperatureFlag = 1;
-      lcdFlag         = 1;
+      _50msCount      = 0;
 
-      _10msCount      = 0;
+      if (txState == 1) tx_lcdFlag = 1;
+      else rx_lcdFlag = 1;
+      if (ftmode == 1) readFT817();
    }
 }
-
 
 void processButtons() {
    buttons = checkButtons();
@@ -311,7 +330,7 @@ void processButtons() {
          break;
       case BTN_KY:
          changeKeyMode();
-         lcdFlag  = 1;
+         rx_lcdFlag  = 1;
          break;
       case BTN_LONG_KY:
          displayMenu();
@@ -319,6 +338,106 @@ void processButtons() {
    }//endswitch
 }
 
+void Tuner_Byp(char byp){
+     TX_OUT = 0;
+     Delay_ms(20);
+     Tuner_Snd_Char('*');
+     Tuner_Snd_Char('Y');
+     Tuner_Snd_Char(byp + 48);
+     Tuner_Snd_Char(13);
+     Delay_ms(20);
+     if ((txState == 1) && (keymode != 3)) TX_OUT = 1;
+}
+
+void TXButtons() {
+   unsigned int j;
+   char C1,C2;
+
+   buttons = checkButtons();
+   switch (buttons) {
+      case BTN_DN:
+       if (atu_mode !=0){
+         atu_mode = 1;
+         Tuner_Byp(1);   // Bypass tuner
+         Lcd_Out(1,1,copyConst2Ram(msg,ATU_BYP));
+         EEPROM_Write(13, atu_mode);
+         Delay_ms(1500);
+       }
+       break;
+      case BTN_UP:
+       if (atu_mode != 0){
+         atu_mode = 2;
+         Tuner_Byp(0);   // Unbypass tuner
+         Lcd_Out(1,1,copyConst2Ram(msg,ATU_ACT));
+         EEPROM_Write(13, atu_mode);
+         Delay_ms(1500);
+        }
+        break;
+      case BTN_KY:
+         if (atu_mode == 1){
+            atu_mode = 2;
+            Tuner_Byp(0);
+            EEPROM_Write(13, atu_mode);
+         }
+         if (atu_mode == 2){
+            TX_OUT = 0; // Amp Off
+
+            // display 'Tuning ...' message
+            Lcd_Cmd(_LCD_CLEAR); // Clear display
+            Lcd_Out(1,1,copyConst2Ram(msg,ATU_TOP));
+
+            // tell tuner to tune
+            Tuner_Snd_Char('*');
+            Tuner_Snd_Char('A');
+            Tuner_Snd_Char(13);
+
+            j=0;
+            C1 = 255;
+            // wait up to 6 seconds for tuner to respond
+            while ((j++ < 1500) && C1 == 255){
+                  C1 = Tuner_Get_Char();
+                  if (PORTB.B2 == 0) Tuner_Snd_Char('A'); // If 'KEY MODE' pressed abort tuning
+            }
+            C1 = Tuner_Get_Char();
+            Delay_ms(25);
+            
+            Tuner_Snd_Char('*');
+            Tuner_Snd_Char('S');
+            Tuner_Snd_Char(13);
+
+            C1 = Tuner_Get_Char();
+            C2 = Tuner_Get_Char();
+
+            if (j > 999) Lcd_Out(1,1,copyConst2Ram(msg,ATU_T));
+            else{
+                 switch (C1){
+                        case 'A':
+                        case 'a':
+                             Lcd_Out(1,1,copyConst2Ram(msg,ATU_A));
+                             break;
+                        case 'L':
+                        case 'l':
+                             Lcd_Out(1,1,copyConst2Ram(msg,ATU_L));
+                             break;
+                        case 'S':
+                        case 's':
+                             Lcd_Out(1,1,copyConst2Ram(msg,ATU_S));
+                             break;
+                        case 'F':
+                        case 'f':
+                             Lcd_Out(1,1,copyConst2Ram(msg,ATU_F));
+                             break;
+                 }
+            }
+            if ((keymode == PT)||(keymode == CR)) TX_OUT = 1;
+            Delay_ms(1500);
+            Update_LCD();
+         }
+         break;
+      case BTN_LONG_KY:
+         break;
+   }//endswitch
+}
 
 unsigned short checkButtons() {
    unsigned short state;
@@ -360,7 +479,6 @@ void waitButtonRelease() {
    }
 }
 
-
 void checkTxState() {
    if (keyMode == PT) {
       if (PORTB.key == 0 && txState == 1) {
@@ -393,6 +511,17 @@ void checkTxState() {
          RX_delay_ms = 0;
       }
    }
+   if (keyMode == QR) {
+      // Carrier Detect when COR or PTT Line is LOW
+      if (PORTB.cor == 1 && txState == 1 && PORTB.key == 0) {
+         // The COR line is HIGH (OFF), need to turn TX off.
+         setTxOff();
+      }
+      if ((PORTB.cor == 0 || PORTB.key == 1) && txState == 0) {
+         // The COR line is on (LOW), we aren't in TX, we need to turn TX on
+         setTxOn();
+      }
+   }
 }
 
 
@@ -419,4 +548,57 @@ unsigned int EEPROM_Read_int (unsigned int address) {
    Lo(num) = EEPROM_Read(address);
    Hi(num) = EEPROM_Read(address+1);
    return num;
+}
+
+// Sends a single character at 19200,N,8,1 out pin RC2.
+void Tuner_Snd_Char(char c){
+     unsigned short j;
+
+     INTCON.GIE  = 0;  //Global Interrupt Disable
+     Delay_us(104);
+     T_TXD = 0;
+     Delay_us(49);
+     for (j = 0; j < 8; j++){
+         if ((c & 0x01) == 0) T_TXD = 0;
+         else T_TXD = 1;
+         c >>= 1;
+         Delay_us(48);
+     }
+     T_TXD = 1;
+     INTCON.GIE  = 1;  //Global Interrupt Enable
+}
+
+char Tuner_Get_Char(void){
+     int i = 0;
+     unsigned short L_RXD = 0x04, j;
+     char c = 0;
+     
+     INTCON.GIE  = 0;  //Global Interrupt Disable
+
+     //wait for RXD to go high (stop bit)
+     while ((T_RXD == 0) && (i++ < 1000)) Delay_us(1);
+     if (i > 999){
+        INTCON.GIE  = 1;
+        return 255;
+     }
+     i = 0;
+     //wait for RXD to go low (start bit)
+     while ((T_RXD == 1) && (i++ < 1000)) Delay_us(1);
+     if (i > 999){
+        INTCON.GIE  = 1;
+        return 255;
+     }
+
+     Delay_us(70); //wait until center of 1st bit
+     PORTB.B0 = 1;
+     
+     for (j = 0; j < 8; j++){
+         c >>= 1;
+         PORTB.B0 = 0;
+         if (T_RXD != 0) c += 0x80;
+         Delay_us(49);
+     }
+     INTCON.GIE  = 1;  //Global Interrupt Ensable
+     
+     return c;
 }

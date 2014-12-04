@@ -17,35 +17,23 @@
 // Init for HARDROCK-50
 #include "defs.h"
 
-const char meterLeft_CHR[]   = {16,16,16,0,16,16,16,0};
 const char meterBoth_CHR[]   = {31,31,31,0,31,31,31,0};
 const char meterTop_CHR[]    = {31,31,31,0,0,0,0,0};
-const char meterBottom_CHR[] = {0,0,0,0,31,31,31,0};
 
-const char UPDT_BTLDR[]      = "Updating BTLDR  ";
-const char DONE_BTLDR[]      = "Done Updating   ";
-                             
-const char SPLASH_TOP[]      = "HARDROCK-50 AMP";
-const char SPLASH_BOTTOM[]   = "VER 3   FW:2.0C";
+const char SPLASH_TOP[]      = "HARDROCK-50  AMP";
+const char SPLASH_BOTTOM[]   = "FW: 3.0A        ";
 extern const char crlfsemi[];
-const char hwversion[]       = "HW Version: ";
 
 
 void LoadChars() {
    char i;
-   Lcd_Cmd(64);
-   for (i = 0; i<=7; i++) Lcd_Chr_CP(meterLeft_CHR[i]);
    Lcd_Cmd(72);
    for (i = 0; i<=7; i++) Lcd_Chr_CP(meterBoth_CHR[i]);
    Lcd_Cmd(80);
    for (i = 0; i<=7; i++) Lcd_Chr_CP(meterTop_CHR[i]);
-   Lcd_Cmd(88);
-   for (i = 0; i<=7; i++) Lcd_Chr_CP(meterBottom_CHR[i]);
 }
 
 void init() {
-   int diagCounter, i;
-   keymode = 2;
 
    ANSELA = 0b00000011;
    ANSELB = 0;                        // Configure PORTB pins as digital
@@ -57,12 +45,6 @@ void init() {
    ADCON1 = 0b00001000;  // PVCFG<1:0> bit 3-2 10 for A/D VREF+ connected to internal signal, FVR BUF2
    VREFCON0 = 0b10110000;
 
-   //  Set up timer0 for 1msec timing.  This is used for deferred TX and RX.
-   //T0CON       = 0xC3;
-   //TMR0L       = 0x06;
-   //GIE_bit     = 1;
-   //TMR0IE_bit  = 1;
-  
    // Timer0 Registers:
    // 16-Bit Mode; Prescaler=1:1; TMRH Preset=C1; TMRL Preset=80; Freq=1,000.00Hz; Period=1.00 ms
    T0CON.TMR0ON  = 0;    // Timer0 On/Off Control bit:1=Enables Timer0 / 0=Stops Timer0
@@ -102,8 +84,8 @@ void init() {
    IOCB.IOCB7  = 0;
 
    TRISA = 0b00000011;
-   TRISB = 0b01110111;
-   TRISC = 0;
+   TRISB = 0b01111111;
+   TRISC = 0b00000000;
    TRISD = 0b11000000;
    TRISE = 0;
 
@@ -117,37 +99,17 @@ void init() {
       TRISE  = 0b00000110;
    }
 
-   WPUB = 0b00100000;  // Enable Weak Pull up on COR RB5
+   WPUB = 0b00101000;  // Enable Weak Pull up on COR RB5 and RXD from ATU
    INTCON2.RBPU = 0;
 
    LATA = 0;
-   LATC = 0;
+   LATC = 0x06;
    LATD = 0;
    LATE = 0;
 
-   LATC = 0x02;
-//  LATB.RB7 = 1;
-
-
    doLcdInit();
    LoadChars();
-
-   // Hold keymode to enter diagnostics mode
-   if (!PORTB.B2) {
-      diagCounter = 0;
-      for (i = 1; i<=10; i++) {
-         if (!PORTB.B2) {
-            diagCounter++;
-         } else {
-            diagCounter--;
-         }
-         delay_ms(3);
-      }
-      if (diagCounter >= 7) {
-         portTest();
-      }
-   }
-
+ 
    // Read saved values from EEPROM.
    band      = EEPROM_Read(1);      // 1st position = saved band
    keymode   = EEPROM_Read(2);      // 2nd position = saved keymode
@@ -159,10 +121,12 @@ void init() {
    meter_adj = EEPROM_Read(8);      // 8th position = saved meter_adj (+/-25%)
    cor_htime = EEPROM_Read_int(9);  // 9th & 10th  positions = saved COR hang time (int)
    key_delay = EEPROM_Read_int(11); // 11th & 12th positions = saved key_up delay (int)
+   // 13th position is the ATU mode but we only read it if the tuner is present
+   ftmode    = EEPROM_Read(14);     // 14th position = saved FT-817 mode
 
    // Make sure saved values are valid.  Use defaults if necessary.
    if (band      > 10                     ) { band      = 10;}
-   if (keymode   > 2                      ) { keymode   = 2; }
+   if (keymode   > 3                      ) { keymode   = 3; }
    if (tempmode  > 1    || tempmode  < 0  ) { tempmode  = 0; }
    if (acc_baud  > 3    || acc_baud  < 0  ) { acc_baud  = 2; }
    if (kxmode    > 1    || kxmode    < 0  ) { kxmode    = 0; }
@@ -171,87 +135,72 @@ void init() {
    if (meter_adj > 25   || meter_adj < -25) { meter_adj = 0; }
    if (cor_htime > 2000 || cor_htime < 0  ) { cor_htime = 0; }
    if (key_delay > 50   || key_delay < 0  ) { key_delay = 0; }
+   if (ftmode    > 1    || ftmode    < 0  ) { ftmode    = 0; }
 
-  // Hold BAND-DOWN to change temperature display between F and C
-   if (!PORTB.B1) {
-      Lcd_Out(1,1,"Temp Mode: ");
-
-      if (tempmode == 1) {
-         tempmode = 0;
-         Lcd_Out(1,12,"F ");
-      }
-      else {
-         tempmode = 1;
-         Lcd_Out(1,12,"C ");
-      }
-      EEPROM_Write(3, tempmode);
-      delay_ms(3000);
+   set_baud = usb_baud;
+   if (REV_E) set_baud = acc_baud;
+   
+   // Reset UART1 baud rate.
+   switch (set_baud){
+          case 0:
+               UART1_Init(4800);
+               break;
+          case 1:
+               UART1_Init(9600);
+               break;
+          case 2:
+               UART1_Init(19200);
+               break;
+          case 3:
+               UART1_Init(38400);
+               break;
    }
-
-   // Only hack the bootloader if we are REV_E or older
-   if (REV_E && blver < 1) {
-      Lcd_Out(1,1,copyConst2Ram(msg,UPDT_BTLDR));
-      delay_ms(2000);
-      startBootload();
-      EEPROM_Write(6, 1);
-      Lcd_Out(1,1,copyConst2Ram(msg,DONE_BTLDR));
-      delay_ms(2000);
-   }
-
-
-   // Enable UARTs
-
-   // Hold BAND_UP to enable UART1 with standard UART setup.
-   if (!PORTB.B0) {
-      TRISB6_bit = 1;
-      UART1_Init(19200);
-      BAUDCON1.DTRXP = 0;
-      flags1.configMode = 1;
 
    // enable UARTs using saved configuration.
-   } else {
-      if (REV_E) {
+   if (REV_E) {
 
-         // Reset UART1 baud rate.
-         if      (acc_baud == 0) { UART1_Init(4800 ); }
-         else if (acc_baud == 1) { UART1_Init(9600 ); }
-         else if (acc_baud == 2) { UART1_Init(19200); }
-         else if (acc_baud == 3) { UART1_Init(38400); }
+      // Rev E doesn't support FT-817 mode
+      ftmode = 0;
 
-         // Set KX3 mode
-         if(kxmode == 1) {
-            BAUDCON1.DTRXP = 1;
-            TRISB6_bit     = 0;
-            LATB6_bit      = 0;
-         } else {
-            BAUDCON1.DTRXP = 0;
-         }
-
-      // For REV_F and above.
+      // Set KX3 mode
+      if(kxmode == 1) {
+         BAUDCON1.DTRXP = 1;
+         TRISB6_bit     = 0;
+         LATB6_bit      = 0;
       } else {
+         BAUDCON1.DTRXP = 0;
+      }
 
-         // Reset UART1 baud rate.
-         if      (usb_baud == 0) { UART1_Init(4800 ); }
-         else if (usb_baud == 1) { UART1_Init(9600 ); }
-         else if (usb_baud == 2) { UART1_Init(19200); }
-         else if (usb_baud == 3) { UART1_Init(38400); }
-                                                      
-         // Reset UART2 baud rate.                    
-         if      (acc_baud == 0) { UART2_Init(4800 ); }
-         else if (acc_baud == 1) { UART2_Init(9600 ); }
-         else if (acc_baud == 2) { UART2_Init(19200); }
-         else if (acc_baud == 3) { UART2_Init(38400); }
+   // For REV_F and above.
+   } else {
 
-         // Set KX3 mode
-         if(kxmode == 1) {
-            BAUDCON2.DTRXP = 1;
-         } else {
-            BAUDCON2.DTRXP = 0;
-         }
+      // Reset UART2 baud rate.
+      switch (acc_baud){
+             case 0:
+                  UART2_Init(4800);
+                  break;
+             case 1:
+                  UART2_Init(9600);
+                  break;
+             case 2:
+                  UART2_Init(19200);
+                  break;
+             case 3:
+                  UART2_Init(38400);
+                  break;
 
-      }//endif
-      flags1.configMode = 0;
-   }      
+      }
+
+      // Set KX3 mode
+      if(kxmode == 1) {
+         BAUDCON2.DTRXP = 1;
+      } else {
+         BAUDCON2.DTRXP = 0;
+      }
+
+   }//endif
+
+   flags1.configMode = 0;
 
    uartPtr    = 0;
    readStart  = 0;
@@ -262,26 +211,14 @@ void init() {
 
    lastB = PORTB;
    INTCON.RBIF = 0;
-/* INTCON.INT0IF = 0;
-   INTCON3.INT2IF = 0;
-   INTCON3.INT1IF = 0;*/
-
 
    Delay_ms(100);
-   UART1_Write_Text(copyConst2Ram(msg,crlfsemi));       // diagnostic only - Tx not expected to be used
-   UART1_Write_Text(copyConst2Ram(msg,SPLASH_TOP));
-   UART1_Write_Text(copyConst2Ram(msg,crlfsemi));
-   UART1_Write_Text(copyConst2Ram(msg,SPLASH_BOTTOM));
-   UART1_Write_Text(copyConst2Ram(msg,crlfsemi));
-   UART1_Write_Text(copyConst2Ram(msg,hwversion));
-   UART1_Write(version);
-   UART1_Write_Text(copyConst2Ram(msg,crlfsemi));
 
-   RC1IE_bit = 1;                                       // turn ON interrupt on UART1 receive
    RC1IF_bit = 0;                                       // Clear interrupt flag
+   RC1IE_bit = 1;                                       // turn ON interrupt on UART1 receive
 
-   RC2IE_bit = 1;                                       // turn ON interrupt on UART2 receive
    RC2IF_bit = 0;                                       // Clear interrupt flag
+   RC2IE_bit = 1;                                       // turn ON interrupt on UART2 receive
 
    INTCON.PEIE = 1;
    INTCON.GIE  = 1;                                     //Global Interrupt Enable
@@ -293,5 +230,7 @@ void init() {
    keyModeFlag  = 0;
 
    T0CON.TMR0ON = 1;  // Timer0 On/Off Control bit:1=Enables Timer0 / 0=Stops Timer0.
+
+   setFTmode();
 
 }

@@ -1,4 +1,4 @@
-//  Diagnostics Routines 
+/*  Diagnostics Routines
 
 #include "defs.h"
 
@@ -62,3 +62,4 @@ void portTest() {
    LCD_Out(2,1,"Main Program    ");
    delay_ms(2000);
 }
+*/

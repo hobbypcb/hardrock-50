@@ -1,4 +1,4 @@
-/* 
+/*
     Copyright 2012 HobbyPCB LLC
 
     This file is part of HARDROCK-50 Control Firmware
@@ -27,6 +27,8 @@
 //  8. meter_adj (+/- 25%)
 //  9. cor_htime (2 bytes)
 // 11. key_delay (2 bytes)
+// 12. ATU mode
+// 13. FT-817 mode
 
 // Macros
 #define REV_E (version != 0x46)
@@ -63,11 +65,13 @@ sbit LCD_D7_Direction at TRISD0_bit;
 #define key    F4
 #define cor    F5
 #define active 1
+#define inactive 0
 
 // Key Mode constants
 #define SB 0
 #define PT 1
 #define CR 2
+#define QR 3
 
 // Band constants
 #define _6M   0
@@ -102,15 +106,15 @@ sbit LCD_D7_Direction at TRISD0_bit;
 #define REVF_FWD_PWR_CH    7
 #define REVF_RFL_PWR_CH    6
 
+#define FT817              27
+
 // DTC PORTS
 #define DTC1               LATA.B2
 #define DTC2               LATA.B4
 
 // LCD Special Chars
-#define meterLeft          0
 #define meterBoth          1
 #define meterTop           2
-#define meterBottom        3
 
 // Button change constants
 #define POSITIVE_COUNT     8
@@ -135,6 +139,10 @@ sbit LCD_D7_Direction at TRISD0_bit;
 #define BTN_LONG_KY_DN 0xE
 #define BTN_LONG_ALL_3 0xF
 
+// soft UART constants
+#define T_TXD PORTC.B2
+#define T_RXD PORTB.B3
+
 //extern char SPLASH_TOP[];
 //extern char SPLASH_BOTTOM[];
 
@@ -145,24 +153,31 @@ extern unsigned short band;
 extern unsigned short keymode;
 extern unsigned short tempmode;
 extern short          acc_baud;
+extern short          set_baud;
 extern short          kxmode;
+extern short          ftmode;
 extern short          blver;
 extern short          usb_baud;
 extern short          meter_adj; // (+/- 25%)
 extern int            cor_htime; // (2 bytes)
 extern int            key_delay; // (2 bytes)
+extern short          atu_mode;
+extern char           E_F;
+extern char           PW_STR[5];
+extern unsigned int   tuner_freq;
 
 extern unsigned short txState, timer0Flag, bandFlag;
 extern unsigned short lastB;
 extern char i;                      // Loop variable
-extern unsigned short lcdFlag;
+extern unsigned short tx_lcdFlag, rx_lcdFlag;
 extern char BAND_STR[4+1];
 extern char VOLT_STR[5+1];
 extern char TEMP_STR[3+1];
 extern char PEP_STR[3+1];
 extern char VSWR_STR[3+1];
 extern char KEY_STR[2+1];
-extern unsigned int VOLT, TEMP, LAST_AVE_FWP, RFL_PWR;
+extern unsigned int VOLT, TEMP, LAST_AVE_FWP, RFL_PWR, PEP_cnt;
+extern unsigned int LAST_AVE_RFP, AVE_FWP, AVE_RFP, PEP_FWP;
 extern unsigned int bandUpFlag, bandDownFlag, keyModeFlag; 
 extern unsigned short eepromUpdateFlag;
 extern unsigned short temperatureFlag, voltageFlag, calcSwrFlag;
@@ -208,7 +223,7 @@ void adjustWattMeter(short percent);
 void backgroundTasks();
 void calculateVswr();
 void changeBandDisplay(int direction);
-void changeBandLCD();
+void changeBandLCD(char);
 void changeKeyMode(void);
 unsigned short checkButtons();
 void checkTXAnalogs(void);
@@ -232,26 +247,42 @@ void menuKeyupDelay();
 void menuKxMode();
 void menuTempMode();
 void menuUsbBaudRate();
+void menuATUMode();
 void outDigit(unsigned short) ;
 void portTest();
 void processButtons();
+void TXButtons();
 void processTimerFlags();
 void removeMenuArrows();
 void setBand(void);
-void setBaudRate();
-void setCallSign();
-void setKxMode();
+void setBaudRate(char, char *);
+void setKxMode(char, char *);
 void setKeyMode();
 void setPowerMeter(float fwdpwr, float rflpwr);
 void setTxOff(void);
 void setTxOn(void);
-void setTempLabel();
 void showNumMsec(int num);
 void showPercent(short percent);
 void startBootload();
-void uartRxStatus();
-void uartTxStatus();
+void uartRxStatus(char);
 void uartGrabBuffer();
 void uartGrabBuffer2();
-void updateLCD(void);
 void waitButtonRelease();
+void Tuner_Snd_Char(char);
+char Tuner_Get_Char(void);
+void Show_TX(void);
+void Show_RX(void);
+void Get_WM (void);
+void Tuner_Byp(char);
+void Draw_BG(unsigned char, unsigned char);
+void menuFtMode(void);
+void SetFTmode(void);
+void readFT817(void);
+void Update_LCD(void);
+void UART_send(char,char *);
+void setBandser(char, char *);
+void setModeser(char, char *);
+void setKX3mode(void);
+void setTempser(char, char *);
+void setVoltser(char, char *);
+void setATUser(char, char *);

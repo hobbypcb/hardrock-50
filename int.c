@@ -58,7 +58,7 @@ void interrupt() {
                TX_delay_ms = key_delay;   // If key_delay is set, request TX
             } else {                      // .  in 'TX_delay_ms' milli-seconds,
                setTxOn();                 // .  otherwise, transmit now.
-            }
+           }
          } else {
             setTxOff();
             TX_delay_ms = 0;
@@ -74,6 +74,14 @@ void interrupt() {
             } else {                      // .  in 'RX_delay_ms' milli-seconds,
                setTxOff();                // .  otherwise, end transmit now.
             }
+         }
+      }
+      if (keyMode == QR) {                // COR Line changed - check value and set flags
+         if ((snapshotB.cor == 0)||(snapshotB.key == active)) { // Carrier Detect when COR Line is LOW or PTT is active
+            if (txState != 1) setTxOn();  // If it isn;t already, activate TX mode without amplifier
+         }
+         if ((snapshotB.cor == 1) && (snapshotB.key == inactive)) {
+            if (txState == 1) setTxOff(); // end transmit now.
          }
       }
       lastB = PORTB;
