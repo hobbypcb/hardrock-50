@@ -1,0 +1,1 @@
+This project is written in MikroElektronika MikroC and drives all of the functions of the HARDROCK-50.  The HARDROCK-50 can be found at:  http://www.hobbypcb.com/amateur-radio/amateur-radio/hardrock-50-hf-power-amp-kit.html
